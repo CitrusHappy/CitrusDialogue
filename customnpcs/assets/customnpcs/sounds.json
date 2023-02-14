@@ -1,0 +1,7 @@
+{
+	"default1": {
+		"sounds": [
+			{"name": "customnpcs:txt_default",  "stream": false }
+			]
+	}
+}
