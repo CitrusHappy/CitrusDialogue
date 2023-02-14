@@ -77,7 +77,7 @@ function dialog(e) {
 		for(var z = 0; z <= 11; z++){
 			var dialog = _NPC.getDialog(z);
 			if(dialog != null){
-				log("dialog \"" + dialog.getName() + "\" is available? " + _NPC.getDialog(z).getAvailability().isAvailable(_PLAYER));
+				//log("dialog \"" + dialog.getName() + "\" is available? " + _NPC.getDialog(z).getAvailability().isAvailable(_PLAYER));
 				if(dialog.getAvailability().isAvailable(_PLAYER)){
 					_DIALOG = dialog;
 					break;
@@ -283,7 +283,7 @@ function showNextOptions() {
 	}
 	for (var i = 0; i < options.length; i++) {
 		var dialogOption = _DIALOG.getOption(i);
-		var buttonId;
+		var buttonId = null;
 		//log("DIALOG OPTION: " + _DIALOG.getOption(i).getName() + "    DIALOG TYPE: " + dialogOption.getType())
 
 		switch (dialogOption.getType()) {
@@ -294,7 +294,6 @@ function showNextOptions() {
 				buttonId = ROLE_OPTIONS_BUTTON_ID + i;
 				break;
 			case 2: //DISABLED
-				_BUTTON_IDS.push(null);
 				continue;
 			case 1: //DIALOG_OPTION
 				if(dialogOption.getDialog().getAvailability().isAvailable(_PLAYER)){
@@ -303,7 +302,6 @@ function showNextOptions() {
 						.getOption(i)
 						.getDialog();
 				} else {
-					_BUTTON_IDS.push(null);
 					continue;
 				}
 				break;
@@ -311,27 +309,25 @@ function showNextOptions() {
 				buttonId = CLOSE_GUI_BUTTON_ID + i;
 				break;
 			default:
-				_BUTTON_IDS.push(null);
 				continue;
 		}
 
-		_BUTTON_IDS.push(buttonId);
-
-		_GUI.addButton(buttonId, _DIALOG.getOption(i).getName(), 20, 215 + 25 * i);
+		if(buttonId != null){
+			_BUTTON_IDS.push(buttonId);
+			_GUI.addButton(buttonId, _DIALOG.getOption(i).getName(), 20, 215 + 25 * i);
+		}
 	}
 	if (options.length > 3) {
 		//need to offset buttons to fit screen
 
 		//move first three to left
 		for (var j = 0; j <= 2; j++) {
-			if (_GUI.getComponent(_BUTTON_IDS[j]) != null)
-				_GUI.getComponent(_BUTTON_IDS[j]).setPos(-90, 215 + 25 * j);
+			_GUI.getComponent(_BUTTON_IDS[j]).setPos(-90, 215 + 25 * j);
 		}
 
 		//move last three to right and up
-		for (var k = 3; k <= 5; k++) {
-			if (_GUI.getComponent(_BUTTON_IDS[k]) != null)
-				_GUI.getComponent(_BUTTON_IDS[k]).setPos(130, 215 + 25 * (k - 3));	
+		for (var k = 3; k < _BUTTON_IDS.length; k++) {
+			_GUI.getComponent(_BUTTON_IDS[k]).setPos(130, 215 + 25 * (k - 3));	
 		}
 	}	
 

@@ -10,6 +10,7 @@ A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/cus
 - Fully cancellable mid-dialogue.
 - Wrap around for dialogue that is too long
 - Optional & Customizable NPC portrait
+- Respects the availability of quests and options
 
 
 ## Demo
