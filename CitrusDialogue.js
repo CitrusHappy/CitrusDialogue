@@ -72,14 +72,25 @@ function dialog(e) {
 	if (e instanceof Java.type("noppes.npcs.api.event.DialogEvent")) {
 		//dialog was called via interaction
 		_PLAYER = e.player;
-		_DIALOG = e.dialog;
 		_NPC = e.npc;
+
+		for(var z = 0; z <= 11; z++){
+			var dialog = _NPC.getDialog(z);
+			if(dialog != null){
+				log("dialog \"" + dialog.getName() + "\" is available? " + _NPC.getDialog(z).getAvailability().isAvailable(_PLAYER));
+				if(dialog.getAvailability().isAvailable(_PLAYER)){
+					_DIALOG = dialog;
+					break;
+				}
+			}
+		}
 		//log("====================================================================");
 		//log(_PLAYER.getName() + " started a dialog with " + _NPC.getName() + "!");
 		//log("====================================================================");
 	} else {
 		//dialog was called via customGUIButton
 	}
+	//TODO: instead of hooking into dialog event, stop dialog event from happening and display ours instead
 	//var serverUtils = Java.type("noppes.npcs.NoppesUtilServer");
 	//serverUtils = serverUtils.class.static;
 	//serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerTrader,_NPC.getMCEntity());
@@ -271,10 +282,11 @@ function showNextOptions() {
 		return;
 	}
 	for (var i = 0; i < options.length; i++) {
-		var dialogType = _DIALOG.getOption(i).getType();
+		var dialogOption = _DIALOG.getOption(i);
 		var buttonId;
-		//log("DIALOG OPTION: " + _DIALOG.getOption(i).getName() + "    DIALOG TYPE: " + dialogType)
-		switch (dialogType) {
+		//log("DIALOG OPTION: " + _DIALOG.getOption(i).getName() + "    DIALOG TYPE: " + dialogOption.getType())
+
+		switch (dialogOption.getType()) {
 			case 4: //COMMAND_BLOCK
 				buttonId = COMMAND_OPTIONS_BUTTON_ID + i;
 				break;
@@ -285,10 +297,15 @@ function showNextOptions() {
 				_BUTTON_IDS.push(null);
 				continue;
 			case 1: //DIALOG_OPTION
-				buttonId = DIALOG_OPTIONS_BUTTON_ID + i;
-				potentialNextDialog[buttonId] = _DIALOG
-					.getOption(i)
-					.getDialog();
+				if(dialogOption.getDialog().getAvailability().isAvailable(_PLAYER)){
+					buttonId = DIALOG_OPTIONS_BUTTON_ID + i;
+					potentialNextDialog[buttonId] = _DIALOG
+						.getOption(i)
+						.getDialog();
+				} else {
+					_BUTTON_IDS.push(null);
+					continue;
+				}
 				break;
 			case 0: //QUIT_OPTION
 				buttonId = CLOSE_GUI_BUTTON_ID + i;
