@@ -28,8 +28,8 @@ To add a portrait, put an image with the NPC's exact name inside the ``customnpc
 - Make sure the image file is a w:98 x h:98 .png file or it will not display properly.
 (you can also choose a custom image path, if desired.)
 
-![defaultportrait](/customnpcs/assets/customnpcs/textures/npc/portrait/default.png)
 
-## Acknowledgements
+
+## Acknowledgements ![defaultportrait](/customnpcs/assets/customnpcs/textures/npc/portrait/default.png)
 THANK YOU NOPPES FOR SUCH A ROBUST API, FANTASTIC MOD, AND SUPPORT FOR OLDER VERSIONS!!!!!!!!!
 (what a legend.)
