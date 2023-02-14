@@ -15,6 +15,7 @@ var pauseTime = 1; // duration of each {pause} tag
 var enablePortait = false;
 var portraitTexture = ""; // max size w:98/h:98, if not specified image path, will look in "customnpcs:textures/npc/portrait/*.png"
 
+
 /**
  * ||=======================================================================================||
  * ||    _____  _  _                      ______  _         _                               ||
@@ -31,18 +32,17 @@ var portraitTexture = ""; // max size w:98/h:98, if not specified image path, wi
  */
 
 //constants
-var DIALOG_BOX_ID = 0;
-var NPC_NAME_LABEL_ID = 1;
-var DIALOG_LABEL_ID = 2;
-var NPC_PORTRAIT_ID = 3;
+var DIALOG_BOX_ID = 1;
+var NPC_NAME_LABEL_ID = 2;
+var DIALOG_LABEL_ID = 3;
+var NPC_PORTRAIT_ID = 4;
 var FAST_FORWARD_BUTTON_ID = 100;
-var CLOSE_GUI_BUTTON_ID = 200;
-var CONTINUE_GUI_BUTTON_ID = 300;
+var CONTINUE_GUI_BUTTON_ID = 200;
+var CLOSE_GUI_BUTTON_ID = 300;
 
 var DIALOG_OPTIONS_BUTTON_ID = 500;
-var CLOSE_OPTIONS_BUTTON_ID = 600;
-var ROLE_OPTIONS_BUTTON_ID = 700;
-var COMMAND_OPTIONS_BUTTON_ID = 800;
+var ROLE_OPTIONS_BUTTON_ID = 600;
+var COMMAND_OPTIONS_BUTTON_ID = 700;
 
 var MAX_CHARACTERS = 426;
 
@@ -74,9 +74,16 @@ function dialog(e) {
 		_PLAYER = e.player;
 		_DIALOG = e.dialog;
 		_NPC = e.npc;
+		//log("====================================================================");
+		//log(_PLAYER.getName() + " started a dialog with " + _NPC.getName() + "!");
+		//log("====================================================================");
 	} else {
 		//dialog was called via customGUIButton
 	}
+	//var serverUtils = Java.type("noppes.npcs.NoppesUtilServer");
+	//serverUtils = serverUtils.class.static;
+	//serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerTrader,_NPC.getMCEntity());
+
 	//reset dialogue variables and timers
 	_TIMERS = [];
 	splitDialogs = [];
@@ -105,12 +112,6 @@ function dialog(e) {
 	}
 
 	//TODO: add emotion tagging for changing portraits through dialogue
-	/*
-    for(var j = 0; j < pauseIndices.length; j++)
-    {
-        log(pauseIndices[j])
-    }
-    */
 
 	//log(entireDialog)
 	//log("entire dialog length: " + entireDialog.length)
@@ -134,7 +135,15 @@ function dialog(e) {
         log("split: " + j + "    split text: " + splitDialogs[j]);
     }
     */
-	createDialogUpdateTimers(splitDialogs[currentSplit]);
+
+	if (splitDialogs[currentSplit].length == 0) {
+		//empty dialog text, so just add a button to close
+		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png" );
+		_GUI.update(_PLAYER);
+	} else {
+		createDialogUpdateTimers(splitDialogs[currentSplit]);
+	}
+
 	if (e instanceof Java.type("noppes.npcs.api.event.DialogEvent")) {
 		runDelay(0, function () {
 			_PLAYER.showCustomGui(_GUI);
@@ -143,54 +152,46 @@ function dialog(e) {
 }
 
 /**
- * Create a the timer for each character in given string
+ * Create a timer for each character in given string
  * @param {string} str a max size dialog string
  */
 function createDialogUpdateTimers(splitDialogString) {
 	//log("creating timers for: " + splitDialogString)
-
-	if (splitDialogString.length != 0) {
-		_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
-		_GUI.update(_PLAYER);
-
-		var delay = 0;
-		currentDialogString = "";
-		for (var i = 0; i < splitDialogString.length + 1; i++) {
-			//log("current iteration:" + i)
-			for (var k = 0; k < pauseIndices.length; k++) {
-				if (i == pauseIndices[k]) {
-					delay++;
+	
+	_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
+	_GUI.update(_PLAYER);
+	var delay = 0;
+	currentDialogString = "";
+	for (var i = 0; i < splitDialogString.length + 1; i++) {
+		//log("current iteration:" + i)
+		for (var k = 0; k < pauseIndices.length; k++) {
+			if (i == pauseIndices[k]) {
+				delay++;
+			}
+		}
+		//log("pause delay: " + delay)
+		//log("base delay: " + i*0.05/speed)
+		runDelay(
+			pauseTime * delay + 0.05 + (i * 0.05) / speed,
+			function () {
+				if (_PLAYER.getCustomGui() != null && !skip) {
+					updateDialog(splitDialogString);
 				}
 			}
-			//log("pause delay: " + delay)
-			//log("base delay: " + i*0.05/speed)
-			runDelay(
-				pauseTime * delay + 0.05 + (i * 0.05) / speed,
-				function () {
-					if (_PLAYER.getCustomGui() != null && !skip) {
-						UpdateDialog(splitDialogString);
-					}
-				}
-			);
-		}
-	} else {
-		clearButtons();
-		_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
-		_LABEL.setText("");
-		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png" );
-		_GUI.update(_PLAYER);
+		);
 	}
+		
 }
 
 /**
  * Callback function for individual dialogue update timers
  * @returns void
  */
-function UpdateDialog(splitDialogString) {
+function updateDialog(splitDialogString) {
 	var pitch;
 	var currentCharacter = splitDialogString.charAt(currentDialogString.length); //next character
 
-	log(currentDialogString + " + " + currentCharacter);
+	//log(currentDialogString + " + " + currentCharacter);
 
 	currentDialogString = currentDialogString + currentCharacter;
 
@@ -244,24 +245,24 @@ function UpdateDialog(splitDialogString) {
 		if (currentSplit < splitDialogs.length - 1) {
 			// not done printing, need to print the next split
 			if (splitDialogs.length != 0) { 
-				_GUI.addTexturedButton(CONTINUE_GUI_BUTTON_ID, "CONTINUE_GUI_BUTTON_ID", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
+				_GUI.addTexturedButton(CONTINUE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
 				_GUI.update(_PLAYER);
 			}
 		} else {
 			// done printing, show next options
-			ShowNextOptions();
+			showNextOptions();
 		}
 	}
 }
 
 /**
- *
- * @returns
+ * Displays all the options for the current dialog.
+ * @returns void
  */
-function ShowNextOptions() {
+function showNextOptions() {
 	//create buttons for options
 	var options = _DIALOG.getOptions();
-	potentialNextDialog = {};
+	_BUTTON_IDS = [];
 
 	if (options.length == 0) {
 		// no options left, create close button
@@ -274,58 +275,46 @@ function ShowNextOptions() {
 		var buttonId;
 		//log("DIALOG OPTION: " + _DIALOG.getOption(i).getName() + "    DIALOG TYPE: " + dialogType)
 		switch (dialogType) {
-			case 4:
-				//COMMAND_BLOCK
+			case 4: //COMMAND_BLOCK
 				buttonId = COMMAND_OPTIONS_BUTTON_ID + i;
 				break;
-			case 3:
-				//ROLE_OPTION
+			case 3: //ROLE_OPTION
 				buttonId = ROLE_OPTIONS_BUTTON_ID + i;
 				break;
-			case 2:
-				//DISABLED
+			case 2: //DISABLED
+				_BUTTON_IDS.push(null);
 				continue;
-			case 1:
-				//DIALOG_OPTION
+			case 1: //DIALOG_OPTION
 				buttonId = DIALOG_OPTIONS_BUTTON_ID + i;
 				potentialNextDialog[buttonId] = _DIALOG
 					.getOption(i)
 					.getDialog();
 				break;
-			case 0:
-				//QUIT_OPTION
-				_GUI.addButton(CLOSE_GUI_BUTTON_ID + i, _DIALOG.getOption(i).getName(), 20, 215 + 25 * i);
+			case 0: //QUIT_OPTION
+				buttonId = CLOSE_GUI_BUTTON_ID + i;
 				break;
 			default:
+				_BUTTON_IDS.push(null);
 				continue;
 		}
 
-		_GUI.addButton(
-			DIALOG_OPTIONS_BUTTON_ID + i,
-			_DIALOG.getOption(i).getName(),
-			20,
-			215 + 25 * i
-		);
+		_BUTTON_IDS.push(buttonId);
+
+		_GUI.addButton(buttonId, _DIALOG.getOption(i).getName(), 20, 215 + 25 * i);
 	}
 	if (options.length > 3) {
-		//need to offset buttons
+		//need to offset buttons to fit screen
 
 		//move first three to left
 		for (var j = 0; j <= 2; j++) {
-			if (_GUI.getComponent(DIALOG_OPTIONS_BUTTON_ID + j) != null)
-				_GUI.getComponent(DIALOG_OPTIONS_BUTTON_ID + j).setPos(-90, 215 + 25 * j);
-			if (_GUI.getComponent(CLOSE_GUI_BUTTON_ID + j) != null)
-				_GUI.getComponent(CLOSE_GUI_BUTTON_ID + j).setPos(-90, 215 + 25 * j);
+			if (_GUI.getComponent(_BUTTON_IDS[j]) != null)
+				_GUI.getComponent(_BUTTON_IDS[j]).setPos(-90, 215 + 25 * j);
 		}
 
 		//move last three to right and up
 		for (var k = 3; k <= 5; k++) {
-			var comp = _GUI.getComponent(DIALOG_OPTIONS_BUTTON_ID + k);
-			if (comp != null) {
-				comp.setPos(130, 215 + 25 * (k - 3));
-			}
-			if (_GUI.getComponent(CLOSE_GUI_BUTTON_ID + k) != null)
-				_GUI.getComponent(CLOSE_GUI_BUTTON_ID + k).setPos(130, 215 + 25 * (k - 3));	
+			if (_GUI.getComponent(_BUTTON_IDS[k]) != null)
+				_GUI.getComponent(_BUTTON_IDS[k]).setPos(130, 215 + 25 * (k - 3));	
 		}
 	}	
 
@@ -338,73 +327,125 @@ function ShowNextOptions() {
  * @returns void
  */
 function customGuiButton(e) {
-	if (e.buttonId >= CLOSE_GUI_BUTTON_ID && e.buttonId <= CLOSE_GUI_BUTTON_ID + 5) {
-		//it was the close dialog button
-		_PLAYER.closeGui();
+	//log("button id pressed: " + e.buttonId + " rounded to: " + Math.round(e.buttonId/100)*100);
+	clearButtons();
+	switch(Math.round(e.buttonId/100)*100){
+		case CLOSE_GUI_BUTTON_ID:
+			_PLAYER.closeGui();
+			break;
+		case FAST_FORWARD_BUTTON_ID:
+			// skip through dialog
+		
+			//reset variables
+			skip = true;
+			_TIMERS = [];
+		
+			//update label
+			/*
+        	var components = _GUI.getComponents();
+        	for(var j = 0; j < components.length; j++)
+        	{
+        	    log("component id: " + components[j].getID());
+        	}
+        	*/
+		
+			_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
+			_LABEL.setText(splitDialogs[currentSplit]);
+			if (currentSplit < splitDialogs.length - 1) {
+				// not done printing, need to print the next split
+				_GUI.addTexturedButton(CONTINUE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
+			} else {
+				// done printing, show next options
+				showNextOptions();
+			}
+			skip = false;
+			break;
+		case CONTINUE_GUI_BUTTON_ID:
+			_GUI.removeComponent(CONTINUE_GUI_BUTTON_ID);
+			_LABEL.setText("");
+			currentSplit++;
+			if (currentSplit < splitDialogs.length) {
+				createDialogUpdateTimers(splitDialogs[currentSplit]);
+			}
+			break;
+		case DIALOG_OPTIONS_BUTTON_ID:
+			for (var key in potentialNextDialog) {
+				//log("does key: " + key + " == " + e.buttonId + " ?")
+				if (key == e.buttonId) {
+					//log("key: " + key)
+					//log("value: " + potentialNextDialog[key])
+
+					_DIALOG = potentialNextDialog[key];
+					potentialNextDialog = {};
+					dialog(e);
+				}
+			}
+			break;
+		case ROLE_OPTIONS_BUTTON_ID:
+			_PLAYER.closeGui();
+			performRole();
+			break;
+		default:
+			break;
+	}
+	_GUI.update(_PLAYER);
+}
+
+/**
+ * Performs the role of the current NPC
+ */
+function performRole(){
+	var serverUtils = Java.type("noppes.npcs.NoppesUtilServer");
+	serverUtils = serverUtils.class.static;
+
+	var role = _NPC.getRole().getType();
+	switch(role){
+		case 0: //NONE
+		return;
+
+		case 1: //TRADER
+		serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerTrader,_NPC.getMCEntity());
+		break;
+
+		case 2: //FOLLOWER
+		if(!_NPC.getRole().isFollowing()){
+			serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerFollowerHire,_NPC.getMCEntity());
+		} else{
+			serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerFollower,_NPC.getMCEntity());
+		}
+		break;
+
+		case 3: //BANK
+		//TODO: instead of opening a generic small bank, it should open the bank that the NPC has been assigned
+		serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerBankSmall,_NPC.getMCEntity());
+		break;
+
+		case 4: //TRANSPORTER
+		serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerTransporter,_NPC.getMCEntity());
+		break;
+
+		case 5: //MAILMAN
+		serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerMailman,_NPC.getMCEntity());
+		break;
+
+		case 6: //COMPANION
+		serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").CompanionTrader,_NPC.getMCEntity());
+		break;
+
+		case 7: //DIALOG
+		return;
+
+		case 8: //MAXSIZE
 		return;
 	}
-	if (e.buttonId == FAST_FORWARD_BUTTON_ID) {
-		// skip through dialog
-
-		//reset variables
-		skip = true;
-		_TIMERS = [];
-		clearButtons();
-
-		//update label
-		/*
-        var components = _GUI.getComponents();
-        for(var j = 0; j < components.length; j++)
-        {
-            log("component id: " + components[j].getID());
-        }
-        */
-
-		_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
-		_LABEL.setText(splitDialogs[currentSplit]);
-		_GUI.update(_PLAYER);
-
-		currentDialogString = splitDialogs[currentSplit];
-		if (currentSplit < splitDialogs.length - 1) {
-			// not done printing, need to print the next split
-			_GUI.addTexturedButton(CONTINUE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
-			_GUI.update(_PLAYER);
-		} else {
-			// done printing, show next options
-			ShowNextOptions();
-		}
-		skip = false;
-		return;
-	}
-	if (e.buttonId == CONTINUE_GUI_BUTTON_ID) {
-		_GUI.removeComponent(CONTINUE_GUI_BUTTON_ID);
-		_LABEL.setText("");
-		_GUI.update(_PLAYER);
-		currentSplit++;
-		if (currentSplit < splitDialogs.length) {
-			createDialogUpdateTimers(splitDialogs[currentSplit]);
-		}
-		return;
-	}
-
-	for (var key in potentialNextDialog) {
-		//log("does key: " + key + " == " + e.buttonId + " ?")
-		if (key == e.buttonId) {
-			//log("key: " + key)
-			//log("value: " + potentialNextDialog[key])
-
-			clearButtons();
-			_DIALOG = potentialNextDialog[key];
-			dialog(e);
-		}
-	}
+	
 }
 
 /**
  * Removes all buttons from the UI
  */
 function clearButtons() {
-	log("clearing buttons...");
+	//log("clearing buttons...");
 	/*
     var components = _GUI.getComponents();
     for(var j = 0; j < components.length; j++)
@@ -413,14 +454,15 @@ function clearButtons() {
     }
     */
 	for (var i = 0; i <= _BUTTON_IDS.length; i++) {
-		log("removing button id: " + _BUTTON_IDS[i]);
-		_GUI.removeComponent(_BUTTON_IDS[i]);
+		if(_BUTTON_IDS[i] != null){
+			//log("removing button id: " + _BUTTON_IDS[i]);
+			_GUI.removeComponent(_BUTTON_IDS[i]);
+		}
 	}
 	_GUI.removeComponent(FAST_FORWARD_BUTTON_ID);
 	_GUI.removeComponent(CLOSE_GUI_BUTTON_ID);
 	_GUI.removeComponent(CONTINUE_GUI_BUTTON_ID);
 	_GUI.update(_PLAYER);
-	_BUTTON_IDS = [];
 }
 
 /**
