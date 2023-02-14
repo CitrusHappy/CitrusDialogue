@@ -314,6 +314,7 @@ function showNextOptions() {
 
 		if(buttonId != null){
 			_BUTTON_IDS.push(buttonId);
+			//TODO: Add color based on the option's color hex. Need more support from API since no function exists for it.
 			_GUI.addButton(buttonId, _DIALOG.getOption(i).getName(), 20, 215 + 25 * i);
 		}
 	}
