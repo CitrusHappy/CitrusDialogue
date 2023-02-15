@@ -26,7 +26,7 @@ var portraitTexture = ""; // max size w:98/h:98, if not specified image path, wi
  * ||    \____/|_| \__||_|    \__,_||___/ |___/  |_| \__,_||_| \___/  \__, | \__,_| \___|   ||
  * ||                                                                  __/ |                ||
  * || Script by: Citrus                                               |___/                 ||
- * ||    Sub-script runDelay by: Runon#5355                                                 ||
+ * ||                                                                                       ||
  * || Free to use in any project!                                                     v1.01 ||
  * ||=======================================================================================||
  */
@@ -56,7 +56,7 @@ var currentSplit;
 var pauseIndices = [];
 
 //globals
-var _TIMERS = [];
+var _HTHREAD;
 var _DIALOG;
 var _PLAYER;
 var _NPC;
@@ -99,13 +99,13 @@ function interact(e){
 	//serverUtils = serverUtils.class.static;
 	//serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerTrader,_NPC.getMCEntity());
 
-	//reset dialogue variables and timers
-	_TIMERS = [];
+	//reset dialogue variables
+	if(_HTHREAD != null)
+		_HTHREAD.stop();
 	_GUI = NpcAPI.createCustomGui(69, 256, 256, false);
 	_LABEL = _GUI.addLabel(DIALOG_LABEL_ID, "", -65, 115, 365, 80);
 	splitDialogs = [];
 	currentSplit = 0;
-	_NPC.timers.forceStart(0, 1, true);
 	var entireDialog = _DIALOG.getText();
 	clearButtons();
 
@@ -158,13 +158,12 @@ function interact(e){
 		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png" );
 		_GUI.update(_PLAYER);
 	} else {
-		createDialogUpdateTimers(splitDialogs[currentSplit]);
+		_HTHREAD = new HThread();
+		_HTHREAD.start();
 	}
 
 	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
-		runDelay(0, function () {
-			_PLAYER.showCustomGui(_GUI);
-		});
+		_PLAYER.showCustomGui(_GUI);
 	}
 }
 
@@ -176,44 +175,43 @@ function dialog(e) {
 	e.setCanceled(true);
 }
 
-/**
- * Create a timer for each character in given string
- * @param {string} str a max size dialog string
- */
-function createDialogUpdateTimers(splitDialogString) {
-	//log("creating timers for: " + splitDialogString)
-	
-	_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
-	_GUI.update(_PLAYER);
-	var delay = 0;
-	currentDialogString = "";
-	for (var i = 0; i < splitDialogString.length + 1; i++) {
-		//log("current iteration:" + i)
-		for (var k = 0; k < pauseIndices.length; k++) {
-			if (i == pauseIndices[k]) {
-				delay++;
-			}
-		}
-		//log("pause delay: " + delay)
-		//log("base delay: " + i*0.05/speed)
-		runDelay(
-			pauseTime * delay + 0.05 + (i * 0.05) / speed,
-			function () {
-				if (_PLAYER.getCustomGui() != null && !skip) {
-					updateDialog(splitDialogString);
-				}
-			}
-		);
-	}
-		
-}
 
 /**
- * Callback function for individual dialogue update timers
+ * ! THREADED FUNCTION
+ * Calls updateDialog() for each character in given string, handles delay and speed
+ * Create a thread with this to print the current split
+ * @param {string} str a max size dialog string
+ */
+var Thread = Java.type("java.lang.Thread");
+var HThread = Java.extend(Thread,{
+	run: function() {
+		_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
+		_GUI.update(_PLAYER);
+		var delay = 0;
+		currentDialogString = "";
+		for (var i = 0; i < splitDialogs[currentSplit].length + 1; i++) {
+			//log("current iteration:" + i)
+			for (var k = 0; k < pauseIndices.length; k++) {
+				if (i == pauseIndices[k]) {
+					delay++;
+				}
+			}
+
+			if (_PLAYER.getCustomGui() != null && !skip) {
+				Thread.sleep(pauseTime * delay + 50 / speed)
+				updateDialog();
+			}
+		}
+	}
+});
+
+/**
+ * Called once per character in a string, handles display and sound
  * @returns void
  */
-function updateDialog(splitDialogString) {
+function updateDialog() {
 	var pitch;
+	var splitDialogString = splitDialogs[currentSplit];
 	var currentCharacter = splitDialogString.charAt(currentDialogString.length); //next character
 
 	//log(currentDialogString + " + " + currentCharacter);
@@ -364,20 +362,8 @@ function customGuiButton(e) {
 			break;
 		case FAST_FORWARD_BUTTON_ID:
 			// skip through dialog
-		
-			//reset variables
+			_HTHREAD.stop();
 			skip = true;
-			_TIMERS = [];
-		
-			//update label
-			/*
-        	var components = _GUI.getComponents();
-        	for(var j = 0; j < components.length; j++)
-        	{
-        	    log("component id: " + components[j].getID());
-        	}
-        	*/
-		
 			_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
 			_LABEL.setText(splitDialogs[currentSplit]);
 			if (currentSplit < splitDialogs.length - 1) {
@@ -394,7 +380,8 @@ function customGuiButton(e) {
 			_LABEL.setText("");
 			currentSplit++;
 			if (currentSplit < splitDialogs.length) {
-				createDialogUpdateTimers(splitDialogs[currentSplit]);
+				_HTHREAD = new HThread();
+				_HTHREAD.start();
 			}
 			break;
 		case DIALOG_OPTIONS_BUTTON_ID:
@@ -494,18 +481,6 @@ function clearButtons() {
 	_GUI.update(_PLAYER);
 }
 
-/**
- * This function is called whenever a timer is finished
- * @param {timer} t
- */
-function timer(t) {
-	if (t.id == 0) {
-		//timer that happens every tick
-		runDelayTick(); //To make runDelay work
-	}
-}
-
-
 
 
 /**
@@ -526,42 +501,4 @@ function splitter(str, l) {
 	}
 	strs.push(str);
 	return strs;
-}
-
-/**
- * runDelay Script by Runon#5355
- *
- * Executes a function after a certain amount of time
- * @param {int} seconds Time in seconds
- * @param {Function} callback Function to execute
- */
-function runDelay(seconds, callback) {
-	var time = new Date().getTime() + seconds * 1000;
-	//log("timer set for: " + time)
-	_TIMERS.push({
-		end: time,
-		callback: callback,
-	});
-}
-
-/**
- * Used in tick function to let runDelay work
- */
-function runDelayTick() {
-	if (_TIMERS.length > 0) {
-		var _newTimers = [];
-		var _curTime = new Date().getTime();
-
-		var timer;
-		for (var i = 0; i < _TIMERS.length; i++) {
-			timer = _TIMERS[i];
-			if (_curTime >= timer.end) {
-				timer.callback();
-			} else {
-				_newTimers.push(timer);
-			}
-		}
-
-		_TIMERS = _newTimers;
-	}
 }
