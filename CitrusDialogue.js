@@ -60,16 +60,12 @@ var _TIMERS = [];
 var _DIALOG;
 var _PLAYER;
 var _NPC;
-var _GUI = NpcAPI.createCustomGui(69, 256, 256, false);
-var _LABEL = _GUI.addLabel(DIALOG_LABEL_ID, "", -65, 115, 365, 80);
+var _GUI;
+var _LABEL;
 var _BUTTON_IDS = [];
 
-/**
- * Event function which is called whenever the player interacts with an NPC that has dialogue available
- * @param {event} e
- */
-function dialog(e) {
-	if (e instanceof Java.type("noppes.npcs.api.event.DialogEvent")) {
+function interact(e){
+	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
 		//dialog was called via interaction
 		_PLAYER = e.player;
 		_NPC = e.npc;
@@ -97,6 +93,8 @@ function dialog(e) {
 
 	//reset dialogue variables and timers
 	_TIMERS = [];
+	_GUI = NpcAPI.createCustomGui(69, 256, 256, false);
+	_LABEL = _GUI.addLabel(DIALOG_LABEL_ID, "", -65, 115, 365, 80);
 	splitDialogs = [];
 	currentSplit = 0;
 	_NPC.timers.forceStart(0, 1, true);
@@ -155,11 +153,19 @@ function dialog(e) {
 		createDialogUpdateTimers(splitDialogs[currentSplit]);
 	}
 
-	if (e instanceof Java.type("noppes.npcs.api.event.DialogEvent")) {
+	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
 		runDelay(0, function () {
 			_PLAYER.showCustomGui(_GUI);
 		});
 	}
+}
+
+/**
+ * Event function which is called whenever the player interacts with an NPC that has dialogue available
+ * @param {event} e
+ */
+function dialog(e) {
+	e.setCanceled(true);
 }
 
 /**
@@ -284,7 +290,6 @@ function showNextOptions() {
 	for (var i = 0; i < options.length; i++) {
 		var dialogOption = _DIALOG.getOption(i);
 		var buttonId = null;
-		//log("DIALOG OPTION: " + _DIALOG.getOption(i).getName() + "    DIALOG TYPE: " + dialogOption.getType())
 
 		switch (dialogOption.getType()) {
 			case 4: //COMMAND_BLOCK
@@ -312,13 +317,15 @@ function showNextOptions() {
 				continue;
 		}
 
+		//log("DIALOG OPTION: " + _DIALOG.getOption(i).getName() + " |   DIALOG TYPE: " + dialogOption.getType() + " |   BUTTON ID: " + buttonId);
+
 		if(buttonId != null){
 			_BUTTON_IDS.push(buttonId);
 			//TODO: Add color based on the option's color hex. Need more support from API since no function exists for it.
 			_GUI.addButton(buttonId, _DIALOG.getOption(i).getName(), 20, 215 + 25 * i);
 		}
 	}
-	if (options.length > 3) {
+	if (_BUTTON_IDS.length > 3) {
 		//need to offset buttons to fit screen
 
 		//move first three to left
@@ -391,7 +398,7 @@ function customGuiButton(e) {
 
 					_DIALOG = potentialNextDialog[key];
 					potentialNextDialog = {};
-					dialog(e);
+					interact(e);
 				}
 			}
 			break;
@@ -466,7 +473,7 @@ function clearButtons() {
     {
         log("component id: " + components[j].getID());
     }
-    */
+	*/
 	for (var i = 0; i <= _BUTTON_IDS.length; i++) {
 		if(_BUTTON_IDS[i] != null){
 			//log("removing button id: " + _BUTTON_IDS[i]);
