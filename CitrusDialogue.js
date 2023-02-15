@@ -64,6 +64,10 @@ var _GUI;
 var _LABEL;
 var _BUTTON_IDS = [];
 
+/**
+ * Event function which is called whenever the player interacts with an NPC
+ * @param {event} e 
+ */
 function interact(e){
 	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
 		//dialog was called via interaction
@@ -83,6 +87,10 @@ function interact(e){
 		//log("====================================================================");
 		//log(_PLAYER.getName() + " started a dialog with " + _NPC.getName() + "!");
 		//log("====================================================================");
+		if(_DIALOG == null){
+			// edgecase: no dialogs set, but still has the script on
+			return;
+		}
 	} else {
 		//dialog was called via customGUIButton
 	}
@@ -161,7 +169,7 @@ function interact(e){
 }
 
 /**
- * Event function which is called whenever the player interacts with an NPC that has dialogue available
+ * Event function which is called whenever the player interacts with an NPC that has dialogue available, we need to cancel this event asap
  * @param {event} e
  */
 function dialog(e) {
