@@ -4,13 +4,13 @@ var numberOfSounds = 1; // how many sounds share the same name as above name
 
 var maxPitch = 1;
 var minPitch = 1;
-var speed = 1; // how fast in ticks to play the sound (lower value - slower text, higher value - faster)
+var speed = 1; // how fast in percentage to play the sound (1 = 100% speed, 0.5 = 50% speed, 2 = 200% speed)
 var frequency = 2; // plays a sound per # of characters
 var banjoKazooieRandomizer = false; // overrides frequency
 
 var makePredictable = true; // this makes sound effects consistant between talking to the npc
 var skipSpaces = false; // whether to count spaces for the frequency of sounds playing
-var pauseTime = 1; // duration of each {pause} tag
+var pauseTime = 1; // duration of each {pause} tag in seconds
 
 var enablePortait = false;
 var portraitTexture = ""; // max size w:98/h:98, if not specified image path, will look in "customnpcs:textures/npc/portrait/*.png"
@@ -47,7 +47,6 @@ var COMMAND_OPTIONS_BUTTON_ID = 700;
 var MAX_CHARACTERS = 426;
 
 //functional variables - do not touch!
-var currentDialogString;
 var NpcAPI = Java.type("noppes.npcs.api.NpcAPI").Instance();
 var potentialNextDialog = {}; // mapping - key : value pair
 var skip = false;
@@ -100,8 +99,6 @@ function interact(e){
 	//serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerTrader,_NPC.getMCEntity());
 
 	//reset dialogue variables
-	if(_HTHREAD != null)
-		_HTHREAD.stop();
 	_GUI = NpcAPI.createCustomGui(69, 256, 256, false);
 	_LABEL = _GUI.addLabel(DIALOG_LABEL_ID, "", -65, 115, 365, 80);
 	splitDialogs = [];
@@ -141,6 +138,11 @@ function interact(e){
 		if (portraitTexture == "") {
 			// try to find texture via NPC name
 			portraitTexture = "customnpcs:textures/npc/portrait/" + _NPC.getName() + ".png";
+			if(portraitTexture = "customnpcs:textures/npc/portrait/.png")
+			{
+				//cant find npc portrait, use default
+				portraitTexture = "customnpcs:textures/npc/portrait/default.png";
+			}
 		}
 		_GUI.addTexturedRect(NPC_PORTRAIT_ID, portraitTexture, -182, 106, 256, 256).setScale(0.3828125);
 	}
@@ -161,6 +163,8 @@ function interact(e){
 		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png" );
 		_GUI.update(_PLAYER);
 	} else {
+		if(_HTHREAD != null)
+			_HTHREAD.stop();
 		_HTHREAD = new HThread();
 		_HTHREAD.start();
 	}
@@ -179,57 +183,86 @@ function dialog(e) {
  * ! THREADED FUNCTION
  * Calls updateDialog() for each character in given string, handles delay and speed
  * Create a thread with this to print the current split
- * @param {string} str a max size dialog string
  */
 var Thread = Java.type("java.lang.Thread");
 var HThread = Java.extend(Thread,{
 	run: function() {
+		var currentDialogString = "";
+		var splitDialogString = splitDialogs[currentSplit];
+		
 		_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
 		_GUI.update(_PLAYER);
-		var delay = 0;
-		currentDialogString = "";
-		for (var i = 0; i < splitDialogs[currentSplit].length; i++) {
-			//log("current iteration:" + i)
-			for (var k = 0; k < pauseIndices.length; k++) {
-				if (i == pauseIndices[k]) {
-					delay++;
+
+		while(currentDialogString.length != splitDialogString.length) {
+			var currentCharacter = splitDialogString.charAt(currentDialogString.length);
+			var delay = 0;
+
+			//check for {pause} tag indices
+			if(pauseIndices.length != 0) {
+				for (var k = 0; k < pauseIndices.length; k++) {
+					if (currentDialogString.length == pauseIndices[k]) {
+						//{pause} found
+						delay = 1;
+						break;
+					}
 				}
 			}
-
+			
 			if (_PLAYER.getCustomGui() != null && !skip) {
-				Thread.sleep(pauseTime * delay + 50 / speed)
-				updateDialog();
+				//log(currentDialogString + " + " + currentCharacter);
+				if(splitDialogString.charCodeAt(currentDialogString.length) == "§".charCodeAt(0)){
+					//minecraft formatting code §, don't make a delay for it
+					//log("found format code.")
+					currentDialogString = currentDialogString + currentCharacter + splitDialogString.charAt(currentDialogString.length + 1);
+					_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
+					_LABEL.setText(currentDialogString);
+					_GUI.update(_PLAYER);
+				}else if(skipSpaces && currentCharacter == " "){
+					//skip spaces
+					currentDialogString = currentDialogString + currentCharacter;
+				}
+				else{
+					Thread.sleep(pauseTime*1000*delay + 50 / speed);
+					currentDialogString = currentDialogString + currentCharacter;
+					updateDialog(currentDialogString);
+				}
 			}
+		}
+
+		//done printing text
+		//log("done printing dialog");
+		//log("current split: " + currentSplit + " <= splitDialogs.length: " + splitDialogs.length)
+		_GUI.removeComponent(FAST_FORWARD_BUTTON_ID);
+
+		if (currentSplit < splitDialogs.length - 1) {
+			// not done printing splits, need to print the next split
+			if (splitDialogs.length != 0) { 
+				_GUI.addTexturedButton(CONTINUE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
+				_GUI.update(_PLAYER);
+			}
+		} else {
+			// done printing, show next options
+			showNextOptions();
 		}
 	}
 });
 
 /**
- * Called once per character in a string, handles display and sound
- * @returns void
+ * Called once per valid character in a string, handles display and sound only
+ * @param {string} stringToDisplay 
  */
-function updateDialog() {
+function updateDialog(stringToDisplay) {
 	var pitch;
-	var splitDialogString = splitDialogs[currentSplit];
-	var currentCharacter = splitDialogString.charAt(currentDialogString.length);
 
-	//log(currentDialogString + " + " + currentCharacter);
-
-	currentDialogString = currentDialogString + currentCharacter;
-
+	//update dialog text
 	_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
-	_LABEL.setText(currentDialogString);
+	_LABEL.setText(stringToDisplay);
 	_GUI.update(_PLAYER);
 
-	//skip spaces
-	if (skipSpaces && currentCharacter == " ") {
-		return;
-	}
-
 	//controlling sounds
-	if (currentDialogString.length % frequency == 0) {
+	if (stringToDisplay.length % frequency == 0) {
 		if (makePredictable) {
-			var hashCode = currentCharacter.hashCode();
+			var hashCode = splitDialogs[currentSplit].charAt(stringToDisplay.length).hashCode();
 			var predictableIndex;
 			if (numberOfSounds == 1) {
 				predictableIndex = 1;
@@ -242,8 +275,7 @@ function updateDialog() {
 			var pitchRangeInt = maxPitchInt - minPitchInt;
 			//zero range case
 			if (pitchRangeInt != 0) {
-				var predictablePitchInt =
-					(hashCode % pitchRangeInt) + minPitchInt;
+				var predictablePitchInt = (hashCode % pitchRangeInt) + minPitchInt;
 				var predictablePitch = predictablePitchInt / 100;
 				pitch = predictablePitch;
 			} else {
@@ -255,25 +287,6 @@ function updateDialog() {
 		}
 
 		_PLAYER.playSound(soundName + predictableIndex, 1, pitch);
-	}
-
-	//log("currentDialogString.length: " + currentDialogString.length + " == splitDialogString.length: " + splitDialogString.length)
-	if (currentDialogString.length == splitDialogString.length) {
-		//done printing text
-		//log("current split: " + currentSplit + " <= splitDialogs.length: " + splitDialogs.length)
-
-		_GUI.removeComponent(FAST_FORWARD_BUTTON_ID);
-
-		if (currentSplit < splitDialogs.length - 1) {
-			// not done printing, need to print the next split
-			if (splitDialogs.length != 0) { 
-				_GUI.addTexturedButton(CONTINUE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
-				_GUI.update(_PLAYER);
-			}
-		} else {
-			// done printing, show next options
-			showNextOptions();
-		}
 	}
 }
 
@@ -471,7 +484,7 @@ function clearButtons() {
  	*/
 	for (var i = 0; i <= _BUTTON_IDS.length; i++) {
 		if(_BUTTON_IDS[i] != null){
-			log("removing button id: " + _BUTTON_IDS[i]);
+			//log("removing button id: " + _BUTTON_IDS[i]);
 			_GUI.removeComponent(_BUTTON_IDS[i]);
 		}
 	}
