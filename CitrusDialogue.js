@@ -152,6 +152,9 @@ function interact(e){
         log("split: " + j + "    split text: " + splitDialogs[j]);
     }
     */
+	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
+		_PLAYER.showCustomGui(_GUI);
+	}
 
 	if (splitDialogs[currentSplit].length == 0) {
 		//empty dialog text, so just add a button to close
@@ -160,10 +163,6 @@ function interact(e){
 	} else {
 		_HTHREAD = new HThread();
 		_HTHREAD.start();
-	}
-
-	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
-		_PLAYER.showCustomGui(_GUI);
 	}
 }
 
@@ -189,7 +188,7 @@ var HThread = Java.extend(Thread,{
 		_GUI.update(_PLAYER);
 		var delay = 0;
 		currentDialogString = "";
-		for (var i = 0; i < splitDialogs[currentSplit].length + 1; i++) {
+		for (var i = 0; i < splitDialogs[currentSplit].length; i++) {
 			//log("current iteration:" + i)
 			for (var k = 0; k < pauseIndices.length; k++) {
 				if (i == pauseIndices[k]) {
@@ -212,7 +211,7 @@ var HThread = Java.extend(Thread,{
 function updateDialog() {
 	var pitch;
 	var splitDialogString = splitDialogs[currentSplit];
-	var currentCharacter = splitDialogString.charAt(currentDialogString.length); //next character
+	var currentCharacter = splitDialogString.charAt(currentDialogString.length);
 
 	//log(currentDialogString + " + " + currentCharacter);
 
@@ -258,8 +257,8 @@ function updateDialog() {
 		_PLAYER.playSound(soundName + predictableIndex, 1, pitch);
 	}
 
-	//log("currentDialogString.length: " + currentDialogString.length + " >= splitDialogString.length: " + splitDialogString.length)
-	if (currentDialogString.length >= splitDialogString.length - 1) {
+	//log("currentDialogString.length: " + currentDialogString.length + " == splitDialogString.length: " + splitDialogString.length)
+	if (currentDialogString.length == splitDialogString.length) {
 		//done printing text
 		//log("current split: " + currentSplit + " <= splitDialogs.length: " + splitDialogs.length)
 
@@ -283,6 +282,7 @@ function updateDialog() {
  * @returns void
  */
 function showNextOptions() {
+	//log("==SHOWING NEXT OPTIONS==");
 	//create buttons for options
 	var options = _DIALOG.getOptions();
 	_BUTTON_IDS = [];
@@ -461,17 +461,17 @@ function performRole(){
  * Removes all buttons from the UI
  */
 function clearButtons() {
-	//log("clearing buttons...");
-	/*
+	/**
+	log("==CLEARING BUTTONS==");
     var components = _GUI.getComponents();
     for(var j = 0; j < components.length; j++)
     {
         log("component id: " + components[j].getID());
     }
-	*/
+ 	*/
 	for (var i = 0; i <= _BUTTON_IDS.length; i++) {
 		if(_BUTTON_IDS[i] != null){
-			//log("removing button id: " + _BUTTON_IDS[i]);
+			log("removing button id: " + _BUTTON_IDS[i]);
 			_GUI.removeComponent(_BUTTON_IDS[i]);
 		}
 	}
