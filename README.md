@@ -1,5 +1,5 @@
 # CitrusDialogue
-A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/custom-npcs) script that completely reworks the dialogue system to a one similar to games like Celeste, Undertale, and Animal Crossing.
+A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/custom-npcs) script that completely reworks the dialogue system to a one similar to games like Celeste, Undertale, and Animal Crossing. Made specifically for [Peculicraft](https://discord.gg/5UtE3Sw6Pe) but free for use.
 
 
 ## Features
@@ -7,10 +7,11 @@ A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/cus
 - Customizable variables for tweaking how often or which sounds are made, speed of dialogue, pause duration, and more!
 - Tagging system for adding pauses or player names
 - Ability to skip dialogue by left clicking the dialogue box
-- Fully cancellable mid-dialogue.
-- Wrap around for dialogue that is too long
+- Fully cancellable at any time.
 - Optional & Customizable NPC portrait
+- Emotion system for changing portraits mid-dialogue.
 - Respects the availability of quests and options
+- Wrap around for dialogue that is too long
 
 
 ## Demo
