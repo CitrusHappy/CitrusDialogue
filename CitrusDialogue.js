@@ -49,7 +49,6 @@ var MAX_CHARACTERS = 426;
 //functional variables - do not touch!
 var NpcAPI = Java.type("noppes.npcs.api.NpcAPI").Instance();
 var potentialNextDialog = {}; // mapping - key : value pair
-var skip = false;
 var splitDialogs = [];
 var currentSplit;
 var pauseIndices = [];
@@ -68,6 +67,8 @@ var _BUTTON_IDS = [];
  * @param {event} e 
  */
 function interact(e){
+	if(_HTHREAD != null)
+		_HTHREAD.interrupt();
 	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
 		//dialog was called via interaction
 		_PLAYER = e.player;
@@ -93,10 +94,6 @@ function interact(e){
 	} else {
 		//dialog was called via customGUIButton
 	}
-	//TODO: instead of hooking into dialog event, stop dialog event from happening and display ours instead
-	//var serverUtils = Java.type("noppes.npcs.NoppesUtilServer");
-	//serverUtils = serverUtils.class.static;
-	//serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerTrader,_NPC.getMCEntity());
 
 	//reset dialogue variables
 	_GUI = NpcAPI.createCustomGui(69, 256, 256, false);
@@ -110,6 +107,7 @@ function interact(e){
 		frequency = 4 + Math.floor(Math.random() * 4);
 	}
 
+	// Process entire dialog
 	//find and replace all player tags with player names
 	entireDialog = entireDialog.replace(
 		new RegExp("{player}", "i"),
@@ -125,11 +123,15 @@ function interact(e){
 		pausePosition = entireDialog.indexOf("{pause}", pausePosition + 1);
 	}
 
+	//find how many formatting codes there are
+	//var numberOfFormattingCodes = entireDialog.match(/§/g).length;
+
 	//TODO: add emotion tagging for changing portraits through dialogue
 
 	//log(entireDialog)
 	//log("entire dialog length: " + entireDialog.length)
 
+	//Create CustomGuiComponents
 	_GUI.setBackgroundTexture("");
 	_GUI.addTexturedRect(DIALOG_BOX_ID, "customnpcs:textures/gui/chatbox.png", -150, -150 , 256, 256).setScale(2);
 	_GUI.addLabel(NPC_NAME_LABEL_ID, _NPC.getName(), -75, 75, 100, 40);
@@ -163,9 +165,7 @@ function interact(e){
 		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png" );
 		_GUI.update(_PLAYER);
 	} else {
-		if(_HTHREAD != null)
-			_HTHREAD.stop();
-		_HTHREAD = new HThread();
+		_HTHREAD = new Thread(new RunDialog());
 		_HTHREAD.start();
 	}
 }
@@ -181,22 +181,34 @@ function dialog(e) {
 
 /**
  * ! THREADED FUNCTION
- * Calls updateDialog() for each character in given string, handles delay and speed
+ * Calls updateDialog() for each character in given string, handles delay and speed, as well as the termination of itself
  * Create a thread with this to print the current split
  */
+var Run = Java.type("java.lang.Runnable");
 var Thread = Java.type("java.lang.Thread");
-var HThread = Java.extend(Thread,{
-	run: function() {
-		var currentDialogString = "";
-		var splitDialogString = splitDialogs[currentSplit];
+var RunDialog = Java.extend(Run, {
+	run: function(){
+		var thisThread = Thread.currentThread();
+		if(thisThread.isInterrupted()){
+			return;
+		}
+		
+		log(_HTHREAD + " ==? " + thisThread);
+		var currentDialogString = "§r" + "";
+		var splitDialogString = "§r" + splitDialogs[currentSplit];
 		
 		_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
 		_GUI.update(_PLAYER);
+	
+		while(!thisThread.isInterrupted() && currentDialogString.length != splitDialogString.length) {
+			//early thread termination if GUI is not open.
+			if(_PLAYER.getCustomGui() == null){
+				thisThread.interrupt();
+			}
 
-		while(currentDialogString.length != splitDialogString.length) {
 			var currentCharacter = splitDialogString.charAt(currentDialogString.length);
 			var delay = 0;
-
+	
 			//check for {pause} tag indices
 			if(pauseIndices.length != 0) {
 				for (var k = 0; k < pauseIndices.length; k++) {
@@ -208,32 +220,30 @@ var HThread = Java.extend(Thread,{
 				}
 			}
 			
-			if (_PLAYER.getCustomGui() != null && !skip) {
-				//log(currentDialogString + " + " + currentCharacter);
-				if(splitDialogString.charCodeAt(currentDialogString.length) == "§".charCodeAt(0)){
-					//minecraft formatting code §, don't make a delay for it
-					//log("found format code.")
-					currentDialogString = currentDialogString + currentCharacter + splitDialogString.charAt(currentDialogString.length + 1);
-					_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
-					_LABEL.setText(currentDialogString);
-					_GUI.update(_PLAYER);
-				}else if(skipSpaces && currentCharacter == " "){
-					//skip spaces
-					currentDialogString = currentDialogString + currentCharacter;
-				}
-				else{
-					Thread.sleep(pauseTime*1000*delay + 50 / speed);
-					currentDialogString = currentDialogString + currentCharacter;
-					updateDialog(currentDialogString);
-				}
+			//log(currentDialogString + " + " + currentCharacter);
+			if(splitDialogString.charCodeAt(currentDialogString.length) == "§".charCodeAt(0)){
+				//minecraft formatting code §, don't make a delay for it
+				//log("found format code.")
+				currentDialogString = currentDialogString + currentCharacter + splitDialogString.charAt(currentDialogString.length + 1);
+				_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
+				_LABEL.setText(currentDialogString);
+				_GUI.update(_PLAYER);
+			}else if(skipSpaces && currentCharacter == " "){
+				//skip spaces
+				currentDialogString = currentDialogString + currentCharacter;
+			}
+			else{
+				Thread.sleep(pauseTime*1000*delay + 50 / speed);
+				currentDialogString = currentDialogString + currentCharacter;
+				updateDialog(currentDialogString);
 			}
 		}
-
+	
 		//done printing text
 		//log("done printing dialog");
 		//log("current split: " + currentSplit + " <= splitDialogs.length: " + splitDialogs.length)
 		_GUI.removeComponent(FAST_FORWARD_BUTTON_ID);
-
+	
 		if (currentSplit < splitDialogs.length - 1) {
 			// not done printing splits, need to print the next split
 			if (splitDialogs.length != 0) { 
@@ -246,6 +256,8 @@ var HThread = Java.extend(Thread,{
 		}
 	}
 });
+
+
 
 /**
  * Called once per valid character in a string, handles display and sound only
@@ -375,8 +387,7 @@ function customGuiButton(e) {
 			break;
 		case FAST_FORWARD_BUTTON_ID:
 			// skip through dialog
-			_HTHREAD.stop();
-			skip = true;
+			_HTHREAD.interrupt();
 			_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
 			_LABEL.setText(splitDialogs[currentSplit]);
 			if (currentSplit < splitDialogs.length - 1) {
@@ -386,14 +397,13 @@ function customGuiButton(e) {
 				// done printing, show next options
 				showNextOptions();
 			}
-			skip = false;
 			break;
 		case CONTINUE_GUI_BUTTON_ID:
 			_GUI.removeComponent(CONTINUE_GUI_BUTTON_ID);
 			_LABEL.setText("");
 			currentSplit++;
 			if (currentSplit < splitDialogs.length) {
-				_HTHREAD = new HThread();
+				_HTHREAD = new Thread(new RunDialog());
 				_HTHREAD.start();
 			}
 			break;
