@@ -1,5 +1,5 @@
 # CitrusDialogue
-A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/custom-npcs) script that completely reworks the dialogue system to a one similar to games like Celeste, Undertale, and Animal Crossing. Made specifically for [Peculicraft](https://discord.gg/5UtE3Sw6Pe) but free for use.
+A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/custom-npcs) script that completely reworks the dialogue system to a one similar to games like Celeste, Undertale, and Animal Crossing. Made specifically for my upcoming modpack [Peculicraft](https://discord.gg/5UtE3Sw6Pe) but free for use.
 
 
 ## Features
