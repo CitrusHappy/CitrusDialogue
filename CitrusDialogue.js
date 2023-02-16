@@ -15,11 +15,11 @@ var pauseTime = 1; // duration of each {pause} tag in seconds
 var enablePortait = false;
 var portraitTexture = ""; // max size w:98/h:98, if not specified image path, will look in "customnpcs:textures/npc/portrait/*.png"
 
-var enableEmotions = false; // enable to change portait based on emotion tags inside dialog text. requires enablePortrait to be true.
+var enableEmotions = false; // Enable to change portait based on emotion tags inside dialog text. Requires enablePortrait to be true. Overrides portraitTexture.
 /**
  *  Define what kind of emotion portraits you have. Feel free to modify.
  *  for example, if "happy" is inside the [], this will change the portrait to the image in the path "customnpcs:textures/npc/portrait/peter/happy.png" if the NPC's name is peter and there is a {happy} tag in the dialog text.
- * 	If no emotions are found in the text, it will set the portait to default
+ * 	If no emotions are found in the text, it will set the portrait to default
  *  DEFAULTS: ["default", "happy", "sad", "anger", "fear", "surprise", "disgust", "joke"];
  */
 var emotions = ["default", "happy", "sad", "anger", "fear", "surprise", "disgust", "joke", "wink"];
@@ -129,6 +129,7 @@ function interact(e){
 	pauseIndices = [];
 	var pausePosition = entireDialog.indexOf("{pause}", 0);
 	while (pausePosition >= 0) {
+		//log("pause found at: " + pausePosition);
 		pauseIndices.push(pausePosition);
 		entireDialog = entireDialog.replace("{pause}", "");
 		pausePosition = entireDialog.indexOf("{pause}", pausePosition + 1);
@@ -139,8 +140,18 @@ function interact(e){
 		for(var v = 0; v <= emotions.length; v++){
 			var emotionPosition = entireDialog.indexOf("{" + emotions[v] + "}", 0);
 			while (emotionPosition >= 0) {
+				//log("found emotion: " + emotions[v] + " at position " + emotionPosition);
 				emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v] + ".png";
 				entireDialog = entireDialog.replace("{" + emotions[v] + "}", "");
+
+				//fix pause positions
+				pauseIndices = pauseIndices.map(function(pausePos){
+					if(emotionPosition <= pausePos)
+						return pausePos - ("{" + emotions[v] + "}").length;
+					else
+						return pausePos;
+				});
+
 				emotionPosition = entireDialog.indexOf("{" + emotions[v] + "}", emotionPosition + 1);
 			}
 		}
@@ -216,8 +227,8 @@ var RunDialog = Java.extend(Run, {
 			return;
 		}
 		
-		var currentDialogString = "§r" + "";
-		var splitDialogString = "§r" + splitDialogs[currentSplit];
+		var currentDialogString = "";
+		var splitDialogString = splitDialogs[currentSplit];
 		
 		_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
 		_GUI.update(_PLAYER);
@@ -234,7 +245,7 @@ var RunDialog = Java.extend(Run, {
 			//check for {pause} tag indices
 			if(pauseIndices.length != 0) {
 				for (var k = 0; k < pauseIndices.length; k++) {
-					if (currentDialogString.length == pauseIndices[k]) {
+					if (currentDialogString.length == pauseIndices[k] + "§r".length) {
 						//{pause} found
 						delay = 1;
 						break;
@@ -242,7 +253,6 @@ var RunDialog = Java.extend(Run, {
 				}
 			}
 			
-			//TODO: emotion tags at the start of a string do not appear.
 			//check for emotion tag
 			if(enablePortait && enableEmotions){
 				for (var emotionPosition in emotionPositionMap) {
@@ -253,8 +263,8 @@ var RunDialog = Java.extend(Run, {
 				}
 			}
 			
-			//log(currentDialogString + " + " + currentCharacter);
-			if(splitDialogString.charCodeAt(currentDialogString.length) == "§".charCodeAt(0)){
+			log(currentDialogString + " + " + currentCharacter);
+			if(currentCharacter.charCodeAt(0) == "§".charCodeAt(0)){
 				//minecraft formatting code §, don't make a delay for it
 				//log("found format code.")
 				currentDialogString = currentDialogString + currentCharacter + splitDialogString.charAt(currentDialogString.length + 1);
@@ -557,11 +567,11 @@ function splitter(str, l) {
 	while (str.length > l) {
 		var pos = str.substring(0, l).lastIndexOf(" ");
 		pos = pos <= 0 ? l : pos;
-		strs.push(str.substring(0, pos));
+		strs.push("§r" + str.substring(0, pos));
 		var i = str.indexOf(" ", pos) + 1;
 		if (i < pos || i > pos + l) i = pos;
 		str = str.substring(i);
 	}
-	strs.push(str);
+	strs.push("§r" + str);
 	return strs;
 }
