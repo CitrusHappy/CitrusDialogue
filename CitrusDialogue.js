@@ -15,6 +15,15 @@ var pauseTime = 1; // duration of each {pause} tag in seconds
 var enablePortait = false;
 var portraitTexture = ""; // max size w:98/h:98, if not specified image path, will look in "customnpcs:textures/npc/portrait/*.png"
 
+var enableEmotions = false; // enable to change portait based on emotion tags inside dialog text. requires enablePortrait to be true.
+/**
+ *  Define what kind of emotion portraits you have. Feel free to modify.
+ *  for example, if "happy" is inside the [], this will change the portrait to the image in the path "customnpcs:textures/npc/portrait/peter/happy.png" if the NPC's name is peter and there is a {happy} tag in the dialog text.
+ * 	If no emotions are found in the text, it will set the portait to default
+ *  DEFAULTS: ["default", "happy", "sad", "anger", "fear", "surprise", "disgust", "joke"];
+ */
+var emotions = ["default", "happy", "sad", "anger", "fear", "surprise", "disgust", "joke", "wink"];
+
 
 /**
  * ||=======================================================================================||
@@ -27,7 +36,7 @@ var portraitTexture = ""; // max size w:98/h:98, if not specified image path, wi
  * ||                                                                  __/ |                ||
  * || Script by: Citrus                                               |___/                 ||
  * ||                                                                                       ||
- * || Free to use in any project!                                                     v1.01 ||
+ * || Free to use in any project!                                                     v1.02 ||
  * ||=======================================================================================||
  */
 
@@ -48,10 +57,11 @@ var MAX_CHARACTERS = 426;
 
 //functional variables - do not touch!
 var NpcAPI = Java.type("noppes.npcs.api.NpcAPI").Instance();
-var potentialNextDialog = {}; // mapping - key : value pair
+var potentialNextDialog = {}; // mapping - buttonId (key) : IDialog (value)
 var splitDialogs = [];
 var currentSplit;
 var pauseIndices = [];
+var emotionPositionMap = {}; // mapping - position of emotion (key) : emotion name (value)
 
 //globals
 var _HTHREAD;
@@ -61,6 +71,7 @@ var _NPC;
 var _GUI;
 var _LABEL;
 var _BUTTON_IDS = [];
+var _PORTRAIT;
 
 /**
  * Event function which is called whenever the player interacts with an NPC
@@ -123,13 +134,21 @@ function interact(e){
 		pausePosition = entireDialog.indexOf("{pause}", pausePosition + 1);
 	}
 
+	if(enablePortait && enableEmotions){
+		emotionPositionMap = {};
+		for(var v = 0; v <= emotions.length; v++){
+			var emotionPosition = entireDialog.indexOf("{" + emotions[v] + "}", 0);
+			while (emotionPosition >= 0) {
+				emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v] + ".png";
+				entireDialog = entireDialog.replace("{" + emotions[v] + "}", "");
+				emotionPosition = entireDialog.indexOf("{" + emotions[v] + "}", emotionPosition + 1);
+			}
+		}
+	}
+
+	//TODO: change max size of characters depending on how many formatting codes there are. since currently, the amount of characters that display per page shrinks as more formatting codes are added.
 	//find how many formatting codes there are
 	//var numberOfFormattingCodes = entireDialog.match(/§/g).length;
-
-	//TODO: add emotion tagging for changing portraits through dialogue
-
-	//log(entireDialog)
-	//log("entire dialog length: " + entireDialog.length)
 
 	//Create CustomGuiComponents
 	_GUI.setBackgroundTexture("");
@@ -146,7 +165,11 @@ function interact(e){
 				portraitTexture = "customnpcs:textures/npc/portrait/default.png";
 			}
 		}
-		_GUI.addTexturedRect(NPC_PORTRAIT_ID, portraitTexture, -182, 106, 256, 256).setScale(0.3828125);
+
+		if(enableEmotions)
+			portraitTexture = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/default.png"
+
+		_PORTRAIT = _GUI.addTexturedRect(NPC_PORTRAIT_ID, portraitTexture, -182, 106, 256, 256).setScale(0.3828125);
 	}
 
 	splitDialogs = splitter(entireDialog, MAX_CHARACTERS);
@@ -193,7 +216,6 @@ var RunDialog = Java.extend(Run, {
 			return;
 		}
 		
-		log(_HTHREAD + " ==? " + thisThread);
 		var currentDialogString = "§r" + "";
 		var splitDialogString = "§r" + splitDialogs[currentSplit];
 		
@@ -216,6 +238,17 @@ var RunDialog = Java.extend(Run, {
 						//{pause} found
 						delay = 1;
 						break;
+					}
+				}
+			}
+			
+			//TODO: emotion tags at the start of a string do not appear.
+			//check for emotion tag
+			if(enablePortait && enableEmotions){
+				for (var emotionPosition in emotionPositionMap) {
+					if (currentDialogString.length == emotionPosition) {
+						//emotion tag found
+						_PORTRAIT.setTexture(emotionPositionMap[emotionPosition]);
 					}
 				}
 			}
@@ -390,6 +423,13 @@ function customGuiButton(e) {
 			_HTHREAD.interrupt();
 			_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
 			_LABEL.setText(splitDialogs[currentSplit]);
+
+			//set emotion to last one in list
+			if(enablePortait && enableEmotions){
+				if(emotionPositionMap != {})
+					_PORTRAIT.setTexture(emotionPositionMap[Object.keys(emotionPositionMap)[Object.keys(emotionPositionMap).length - 1]]);
+			}
+			
 			if (currentSplit < splitDialogs.length - 1) {
 				// not done printing, need to print the next split
 				_GUI.addTexturedButton(CONTINUE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
