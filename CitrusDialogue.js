@@ -5,11 +5,9 @@ var numberOfSounds = 1; // how many sounds share the same name as above name
 var maxPitch = 1;
 var minPitch = 1;
 var speed = 1; // how fast in percentage to play the sound (1 = 100% speed, 0.5 = 50% speed, 2 = 200% speed)
-var frequency = 2; // plays a sound per # of characters
-var banjoKazooieRandomizer = false; // overrides frequency
+var frequency = 2; // plays a sound per # of characters (generally the longer the soundbyte, the higher the frequency you should have)
 
 var makePredictable = true; // this makes sound effects consistant between talking to the npc
-var skipSpaces = false; // whether to count spaces for the frequency of sounds playing
 var pauseTime = 1; // duration of each {pause} tag in seconds
 
 var enablePortait = true;
@@ -124,10 +122,6 @@ function interact(e){
 	currentSplit = 0;
 	var entireDialog = _DIALOG.getText();
 	clearButtons();
-
-	if (banjoKazooieRandomizer) {
-		frequency = 4 + Math.floor(Math.random() * 4);
-	}
 
 	// Play sounds at start
 	var soundRegex = new RegExp("{sound:(.*?)}", "gi");
@@ -355,9 +349,6 @@ var RunDialog = Java.extend(Run, {
 				_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
 				_LABEL.setText(currentDialogString);
 				_GUI.update(_PLAYER);
-			}else if(skipSpaces && currentCharacter == " "){
-				//skip spaces
-				currentDialogString = currentDialogString + currentCharacter;
 			}
 			else{
 				Thread.sleep(pauseTime*1000*delay + 50 / speed);
@@ -399,6 +390,7 @@ function updateDialog(stringToDisplay) {
 	_GUI.update(_PLAYER);
 
 	//controlling sounds
+	log(stringToDisplay.length % frequency);
 	if (stringToDisplay.length % frequency == 0) {
 		if (makePredictable) {
 			var hashCode = splitDialogs[currentSplit].charAt(stringToDisplay.length).hashCode();
