@@ -12,10 +12,10 @@ var makePredictable = true; // this makes sound effects consistant between talki
 var skipSpaces = false; // whether to count spaces for the frequency of sounds playing
 var pauseTime = 1; // duration of each {pause} tag in seconds
 
-var enablePortait = false;
+var enablePortait = true;
 var portraitTexture = ""; // max size w:98/h:98, if not specified image path, will look in "customnpcs:textures/npc/portrait/*.png"
 
-var enableEmotions = false; // Enable to change portait based on emotion tags inside dialog text. Requires enablePortrait to be true. Overrides portraitTexture.
+var enableEmotions = true; // Enable to change portait based on emotion tags inside dialog text. Requires enablePortrait to be true. Overrides portraitTexture.
 /**
  *  Define what kind of emotion portraits you have. Feel free to modify.
  *  for example, if "happy" is inside the [], this will change the portrait to the image in the path "customnpcs:textures/npc/portrait/peter/happy.png" if the NPC's name is peter and there is a {happy} tag in the dialog text.
@@ -24,6 +24,17 @@ var enableEmotions = false; // Enable to change portait based on emotion tags in
  */
 var emotions = ["default", "happy", "sad", "anger", "fear", "surprise", "disgust", "joke", "wink"];
 
+/**
+ *  Due to lack of some critical API functions, some options set in the NPC editor are worthless when using this script so I had to make some work arounds.
+ * 
+ * 	If you wish to distribute faction points at the beginning of a dialog, don't set it in the NPC editor. Instead do the following:
+ * 	At the beginning of the dialog text, add {faction:FACTION_ID:AMOUNT}. example {faction:0:+10}
+ * 	Supports multiple faction tags
+ * 
+ * 	If you wish to play a sound at the beginning:
+ * 	At the beginning of the dialog text, add {sound:SOUND_PATH}. example {sound:customnpcs:talk1}
+ * 	Supports multiple sound tags
+ */
 
 /**
  * ||=======================================================================================||
@@ -95,9 +106,9 @@ function interact(e){
 				}
 			}
 		}
-		//log("====================================================================");
-		//log(_PLAYER.getName() + " started a dialog with " + _NPC.getName() + "!");
-		//log("====================================================================");
+		log("====================================================================");
+		log(_PLAYER.getName() + " started a dialog with " + _NPC.getName() + "!");
+		log("====================================================================");
 		if(_DIALOG == null){
 			// edgecase: no dialogs set, but still has the script on
 			return;
@@ -118,6 +129,65 @@ function interact(e){
 		frequency = 4 + Math.floor(Math.random() * 4);
 	}
 
+	// Play sounds at start
+	var soundRegex = new RegExp("{sound:(.*?)}", "gi");
+	var soundStrings = entireDialog.match(soundRegex);
+	if(soundStrings != null){
+		//log("soundstring length: " + soundStrings.length);
+		for(var s = 0; s < soundStrings.length; s++){
+			//log("applying sound string: " + soundStrings[s]);
+			soundStrings[s] = soundStrings[s].replace(new RegExp("[{}]", "g"), "");
+			var split = soundStrings[s].split(":");
+			_PLAYER.playSound(split[1] + ":" + split[2], 1, 1);
+			entireDialog = entireDialog.replace(soundRegex, "");
+		}
+	}
+
+	// Give faction points for each faction tag
+	var factionRegex = new RegExp("{faction:(.*?):(.*?)}", "gi");
+	var factionStrings = entireDialog.match(factionRegex);
+	if(factionStrings != null){
+		//log("factionstrings length: " + factionStrings.length);
+		for(var b = 0; b < factionStrings.length; b++){
+			//log("applying faction string: " + factionStrings[b]);
+			factionStrings[b] = factionStrings[b].replace(new RegExp("[{}]", "g"), "");
+			var split = factionStrings[b].split(":");
+			_PLAYER.addFactionPoints(split[1], split[2]); //id, amount
+			entireDialog = entireDialog.replace(factionRegex, "");
+		}
+	}
+
+	var quest = _DIALOG.getQuest();
+	//log("quest found: " + quest.getName());
+	if(quest != null && !_PLAYER.hasActiveQuest(quest.getId())){
+		_PLAYER.startQuest(quest.getId());
+	}
+		
+
+
+	//TODO: make sure command is executed if set in NPC editor
+	var command = _DIALOG.getCommand()
+	if(command != null){
+
+	}
+
+
+	//TODO: disable escape key if {noescape} is in text
+	//TODO: way of giving mail similar to how its done in the NPC editor
+
+
+
+	//TODO: change max size of characters depending on how many formatting codes there are. since currently, the amount of characters that display per page shrinks as more formatting codes are added.
+	//TODO: move this formatting, emotion, and pause indexes to occur for every single split instead of only once at the beginning
+	var formatCodeIndices = [];
+	var formatPosition = entireDialog.indexOf("§", 0);
+	while (formatPosition >= 0) {
+		//log("format code found at: " + pausePosition);
+		formatCodeIndices.push(formatPosition);
+		formatPosition = entireDialog.indexOf("§", formatPosition + 1);
+	}
+
+
 	// Process entire dialog
 	//find and replace all player tags with player names
 	entireDialog = entireDialog.replace(
@@ -125,6 +195,7 @@ function interact(e){
 		_PLAYER.getDisplayName()
 	);
 
+	// Process each split individually
 	//find and index all pause tags
 	pauseIndices = [];
 	var pausePosition = entireDialog.indexOf("{pause}", 0);
@@ -140,7 +211,17 @@ function interact(e){
 		for(var v = 0; v <= emotions.length; v++){
 			var emotionPosition = entireDialog.indexOf("{" + emotions[v] + "}", 0);
 			while (emotionPosition >= 0) {
-				//log("found emotion: " + emotions[v] + " at position " + emotionPosition);
+				//account for format tags
+				log("found emotion: " + emotions[v] + " at position " + emotionPosition);
+				for(var n = 0; n <= formatCodeIndices.length; n++){
+					if(formatCodeIndices[n] <= emotionPosition ){
+						emotionPosition = emotionPosition - 2;
+					}else{
+						continue;
+					}
+				}
+				log("corrected emotion: " + emotions[v] + " to position " + emotionPosition);
+					
 				emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v] + ".png";
 				entireDialog = entireDialog.replace("{" + emotions[v] + "}", "");
 
@@ -157,7 +238,7 @@ function interact(e){
 		}
 	}
 
-	//TODO: change max size of characters depending on how many formatting codes there are. since currently, the amount of characters that display per page shrinks as more formatting codes are added.
+	
 	//find how many formatting codes there are
 	//var numberOfFormattingCodes = entireDialog.match(/§/g).length;
 
@@ -178,12 +259,12 @@ function interact(e){
 		}
 
 		if(enableEmotions)
-			portraitTexture = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/default.png"
+			portraitTexture = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/default.png";
 
 		_PORTRAIT = _GUI.addTexturedRect(NPC_PORTRAIT_ID, portraitTexture, -182, 106, 256, 256).setScale(0.3828125);
 	}
 
-	splitDialogs = splitter(entireDialog, MAX_CHARACTERS);
+	splitDialogs = splitter(entireDialog, MAX_CHARACTERS + formatCodeIndices.length - 1);
 	/*
     for(var j = 0; j < splitDialogs.length; j++)
     {
@@ -193,6 +274,8 @@ function interact(e){
 	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
 		_PLAYER.showCustomGui(_GUI);
 	}
+
+	
 
 	if (splitDialogs[currentSplit].length == 0) {
 		//empty dialog text, so just add a button to close
@@ -245,7 +328,7 @@ var RunDialog = Java.extend(Run, {
 			//check for {pause} tag indices
 			if(pauseIndices.length != 0) {
 				for (var k = 0; k < pauseIndices.length; k++) {
-					if (currentDialogString.length == pauseIndices[k] + "§r".length) {
+					if (currentDialogString.length == pauseIndices[k] + "§r".length * splitDialogs.length) {
 						//{pause} found
 						delay = 1;
 						break;
@@ -253,6 +336,7 @@ var RunDialog = Java.extend(Run, {
 				}
 			}
 			
+			//TODO: Emotion position is not accurate. happens like 4 characters too late or not at all.
 			//check for emotion tag
 			if(enablePortait && enableEmotions){
 				for (var emotionPosition in emotionPositionMap) {
@@ -263,7 +347,7 @@ var RunDialog = Java.extend(Run, {
 				}
 			}
 			
-			log(currentDialogString + " + " + currentCharacter);
+			log(currentDialogString.length + " - " + currentDialogString + " + " + currentCharacter);
 			if(currentCharacter.charCodeAt(0) == "§".charCodeAt(0)){
 				//minecraft formatting code §, don't make a delay for it
 				//log("found format code.")
@@ -320,7 +404,7 @@ function updateDialog(stringToDisplay) {
 			var hashCode = splitDialogs[currentSplit].charAt(stringToDisplay.length).hashCode();
 			var predictableIndex;
 			if (numberOfSounds == 1) {
-				predictableIndex = 1;
+				predictableIndex = "";
 			} else {
 				predictableIndex = hashCode % numberOfSounds;
 			}
@@ -368,6 +452,7 @@ function showNextOptions() {
 		switch (dialogOption.getType()) {
 			case 4: //COMMAND_BLOCK
 				buttonId = COMMAND_OPTIONS_BUTTON_ID + i;
+				//TODO: add command run here
 				break;
 			case 3: //ROLE_OPTION
 				buttonId = ROLE_OPTIONS_BUTTON_ID + i;
@@ -395,7 +480,6 @@ function showNextOptions() {
 
 		if(buttonId != null){
 			_BUTTON_IDS.push(buttonId);
-			//TODO: Add color based on the option's color hex. Need more support from API since no function exists for it.
 			_GUI.addButton(buttonId, _DIALOG.getOption(i).getName(), 20, 215 + 25 * i);
 		}
 	}
@@ -497,6 +581,7 @@ function performRole(){
 		break;
 
 		case 2: //FOLLOWER
+		//TODO: change from isFollowing to isHired, since if u set to wait they will not be hired anymore
 		if(!_NPC.getRole().isFollowing()){
 			serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerFollowerHire,_NPC.getMCEntity());
 		} else{
