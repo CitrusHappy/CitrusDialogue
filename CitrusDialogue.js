@@ -2,7 +2,7 @@
 var soundName = "customnpcs:default";
 var numberOfSounds = 1; // how many sounds share the same name as above name
 
-var maxPitch = 1;
+var maxPitch = 1; // (1 = 100% pitch, 0.5 = 50% pitch, 2 = 200% pitch)
 var minPitch = 1;
 var speed = 1; // how fast in percentage to play the sound (1 = 100% speed, 0.5 = 50% speed, 2 = 200% speed)
 var frequency = 2; // plays a sound per # of characters (generally the longer the soundbyte, the higher the frequency you should have)
@@ -29,7 +29,7 @@ var emotions = ["default", "happy", "sad", "anger", "fear", "surprise", "disgust
  * 	At the beginning of the dialog text, add {faction:FACTION_ID:AMOUNT}. example {faction:0:+10}
  * 	Supports multiple faction tags
  * 
- * 	If you wish to play a sound at the beginning:
+ * 	If you wish to play a sound at the beginning, don't set it in the NPC editor. Instead do the following:
  * 	At the beginning of the dialog text, add {sound:SOUND_PATH}. example {sound:customnpcs:talk1}
  * 	Supports multiple sound tags
  */
@@ -45,7 +45,7 @@ var emotions = ["default", "happy", "sad", "anger", "fear", "surprise", "disgust
  * ||                                                                  __/ |                ||
  * || Script by: Citrus                                               |___/                 ||
  * ||                                                                                       ||
- * || Free to use in any project!                                                     v1.02 ||
+ * || Free to use in any project!                                                     v1.03 ||
  * ||=======================================================================================||
  */
 
@@ -162,7 +162,7 @@ function interact(e){
 	//TODO: make sure command is executed if set in NPC editor
 	var command = _DIALOG.getCommand()
 	if(command != null){
-
+		NpcAPI.executeCommand(_PLAYER.getWorld(), command);
 	}
 
 
@@ -398,7 +398,8 @@ function updateDialog(stringToDisplay) {
 			if (numberOfSounds == 1) {
 				predictableIndex = "";
 			} else {
-				predictableIndex = hashCode % numberOfSounds;
+				log("picked sound number: " + (hashCode % numberOfSounds + 1));
+				predictableIndex = hashCode % numberOfSounds + 1;
 			}
 
 			var minPitchInt = Math.ceil(minPitch * 100);
@@ -444,7 +445,6 @@ function showNextOptions() {
 		switch (dialogOption.getType()) {
 			case 4: //COMMAND_BLOCK
 				buttonId = COMMAND_OPTIONS_BUTTON_ID + i;
-				//TODO: add command run here
 				break;
 			case 3: //ROLE_OPTION
 				buttonId = ROLE_OPTIONS_BUTTON_ID + i;
@@ -549,6 +549,11 @@ function customGuiButton(e) {
 		case ROLE_OPTIONS_BUTTON_ID:
 			_PLAYER.closeGui();
 			performRole();
+			break;
+		case COMMAND_OPTIONS_BUTTON_ID:
+			//TODO: API Limitation: can't access command from an IDialogOption
+			//NpcAPI.executeCommand(_PLAYER.getWorld(), "");
+			_PLAYER.closeGui();
 			break;
 		default:
 			break;
