@@ -157,14 +157,10 @@ function interact(e){
 		_PLAYER.startQuest(quest.getId());
 	}
 		
-
-
-	//TODO: make sure command is executed if set in NPC editor
 	var command = _DIALOG.getCommand()
 	if(command != null){
 		NpcAPI.executeCommand(_PLAYER.getWorld(), command);
 	}
-
 
 	//TODO: disable escape key if {noescape} is in text
 	//TODO: way of giving mail similar to how its done in the NPC editor
@@ -578,16 +574,15 @@ function performRole(){
 		break;
 
 		case 2: //FOLLOWER
-		//TODO: change from isFollowing to isHired, since if u set to wait they will not be hired anymore
-		if(!_NPC.getRole().isFollowing()){
+		if(_NPC.getRole().getDays() == 0){
 			serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerFollowerHire,_NPC.getMCEntity());
-		} else{
+		} else if(!_NPC.getRole().getGuiDisabled()){
 			serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerFollower,_NPC.getMCEntity());
 		}
 		break;
 
 		case 3: //BANK
-		//TODO: instead of opening a generic small bank, it should open the bank that the NPC has been assigned
+		//TODO: Api limitation: instead of opening a generic small bank, it should open the bank that the NPC has been assigned
 		serverUtils.sendOpenGui(_PLAYER.getMCEntity(),Java.type("noppes.npcs.constants.EnumGuiType").PlayerBankSmall,_NPC.getMCEntity());
 		break;
 
