@@ -15,7 +15,7 @@ A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/cus
 
 
 ## Demo
-![embed](https://yt-embed.live/embed?v=xp8QxmwI3sQ)
+[![Watch the video](https://yt-embed.live/embed?v=xp8QxmwI3sQ)](https://youtu.be/xp8QxmwI3sQ)
 
 
 ## F.A.Q
