@@ -395,6 +395,12 @@ function updateDialog(stringToDisplay) {
 		} else {
 			//randomized pitch
 			pitch = Math.random() * (maxPitch - minPitch) + minPitch;
+			if (numberOfSounds == 1) {
+				predictableIndex = "";
+			} else {
+				//log("picked sound number: " + (Math.floor(Math.random() * numberOfSounds) + 1));
+				predictableIndex = Math.floor(Math.random() * numberOfSounds) + 1;
+			}
 		}
 
 		_PLAYER.playSound(soundName + predictableIndex, 1, pitch);
