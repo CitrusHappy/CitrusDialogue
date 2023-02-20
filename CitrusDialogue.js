@@ -233,26 +233,25 @@ function ProcessCurrentSplit(split){
 		formatPosition = split.indexOf("§", formatPosition + 1);
 	}
 
-	if(enablePortait && enableEmotions){
-		emotionPositionMap = {};
-		var emotions = split.match(/{(\w+)}/g) || [];
-		for(var v = 0; v < emotions.length; v++){
-			var emotionPosition = split.indexOf(emotions[v], 0);
-			//log("found emotion: " + emotions[v] + " at position " + emotionPosition);
-				
-			emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v].replace(/[{}]/g, "") + ".png";
-			split = split.replace(emotions[v], "");
-			
-			//fix pause positions
-			pauseIndices = pauseIndices.map(function(pausePos){
-				if(emotionPosition <= pausePos)
-					return pausePos - (emotions[v]).length;
-				else
-					return pausePos;
-			});
 
-		}
+	emotionPositionMap = {};
+	var emotions = split.match(/{(\w+)}/g) || [];
+	for(var v = 0; v < emotions.length; v++){
+		var emotionPosition = split.indexOf(emotions[v], 0);
+		//log("found emotion: " + emotions[v] + " at position " + emotionPosition);
+			
+		emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v].replace(/[{}]/g, "") + ".png";
+		split = split.replace(emotions[v], "");
+		
+		//fix pause positions
+		pauseIndices = pauseIndices.map(function(pausePos){
+			if(emotionPosition <= pausePos)
+				return pausePos - (emotions[v]).length;
+			else
+				return pausePos;
+		});
 	}
+
 
 	return split;
 }
@@ -437,7 +436,7 @@ function showNextOptions() {
 			case 2: //DISABLED
 				continue;
 			case 1: //DIALOG_OPTION
-				if(dialogOption.getDialog().getAvailability().isAvailable(_PLAYER)){
+				if(dialogOption.getDialog() != null && dialogOption.getDialog().getAvailability().isAvailable(_PLAYER)){
 					buttonId = DIALOG_OPTIONS_BUTTON_ID + i;
 					potentialNextDialog[buttonId] = _DIALOG
 						.getOption(i)
@@ -472,7 +471,10 @@ function showNextOptions() {
 		for (var k = 3; k < _BUTTON_IDS.length; k++) {
 			_GUI.getComponent(_BUTTON_IDS[k]).setPos(130, 215 + 25 * (k - 3));	
 		}
-	}	
+	}
+	if(_BUTTON_IDS.length == 0){
+		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
+	}
 
 	_GUI.update(_PLAYER);
 }
