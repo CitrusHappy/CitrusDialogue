@@ -15,11 +15,7 @@ A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/cus
 
 
 ## Demo
-<iframe width="560" height="315"
-src="https://www.youtube.com/embed/xp8QxmwI3sQ" 
-frameborder="0" 
-allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" 
-allowfullscreen></iframe>
+![embed](https://yt-embed.live/embed?v=xp8QxmwI3sQ)
 
 
 ## F.A.Q
@@ -34,7 +30,7 @@ To add a portrait, put an image with the NPC's exact name inside the ``customnpc
 - Make sure the image file is a w:98 x h:98 .png file or it will not display properly.
 (you can also choose a custom image path, if desired.)
 
-![defaultportrait](/customnpcs/assets/customnpcs/textures/npc/portrait/default.png)
+[![defaultportrait](/customnpcs/assets/customnpcs/textures/npc/portrait/default.png)](https://youtu.be/xp8QxmwI3sQ "Demo Video")
 
 ### How do I change emotion mid dialog?
 First set ``enableEmotions`` to true.
