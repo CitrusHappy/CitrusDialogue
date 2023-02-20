@@ -32,6 +32,24 @@ To add a portrait, put an image with the NPC's exact name inside the ``customnpc
 
 ![defaultportrait](/customnpcs/assets/customnpcs/textures/npc/portrait/default.png)
 
+### How do I change emotion mid dialog?
+First set ``enableEmotions`` to true.
+If the NPC's name is peter and there is a ``{happy}`` tag in the dialog text, this will change the portrait to the image in the path ``customnpcs:textures/npc/portrait/peter/happy.png``.
+
+### How do I add/remove faction points at the start of a dialog?
+If you wish to distribute faction points at the beginning of a dialog, don't set it in the NPC editor. Instead do the following:
+At the beginning of the dialog text, add ``{faction:FACTION_ID:AMOUNT}``. example ``{faction:0:+10}``
+Supports multiple faction tags.
+
+### How do I play a sound at the start if a dialog?
+If you wish to play a sound at the beginning, don't set it in the NPC editor. Instead do the following:
+At the beginning of the dialog text, add ``{sound:SOUND_PATH}``. example ``{sound:customnpcs:talk1}``
+Supports multiple sound tags.
+
+### How do I change availability, command execution, and quest distribution of a dialog?
+Simply edit them using the NPC tool in game!
+
+
 
 ## Acknowledgements 
 THANK YOU NOPPES FOR SUCH A ROBUST API, FANTASTIC MOD, AND SUPPORT FOR OLDER VERSIONS!!!!!!!!!

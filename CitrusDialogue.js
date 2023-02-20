@@ -14,13 +14,7 @@ var enablePortait = true;
 var portraitTexture = ""; // max size w:98/h:98, if not specified image path, will look in "customnpcs:textures/npc/portrait/*.png"
 
 var enableEmotions = true; // Enable to change portait based on emotion tags inside dialog text. Requires enablePortrait to be true. Overrides portraitTexture.
-/**
- *  Define what kind of emotion portraits you have. Feel free to modify.
- *  for example, if "happy" is inside the [], this will change the portrait to the image in the path "customnpcs:textures/npc/portrait/peter/happy.png" if the NPC's name is peter and there is a {happy} tag in the dialog text.
- * 	If no emotions are found in the text, it will set the portrait to default
- *  DEFAULTS: ["default", "happy", "sad", "anger", "fear", "surprise", "disgust", "joke"];
- */
-var emotions = ["default", "happy", "sad", "anger", "fear", "surprise", "disgust", "joke", "wink"];
+// If the NPC's name is peter and there is a {happy} tag in the dialog text, this will change the portrait to the image in the path "customnpcs:textures/npc/portrait/peter/happy.png".
 
 /**
  *  Due to lack of some critical API functions, some options set in the NPC editor are worthless when using this script so I had to make some work arounds.
@@ -70,6 +64,7 @@ var potentialNextDialog = {}; // mapping - buttonId (key) : IDialog (value)
 var splitDialogs = [];
 var currentSplit;
 var pauseIndices = [];
+var formatCodeIndices = [];
 var emotionPositionMap = {}; // mapping - position of emotion (key) : emotion name (value)
 
 //globals
@@ -117,7 +112,7 @@ function interact(e){
 
 	//reset dialogue variables
 	_GUI = NpcAPI.createCustomGui(69, 256, 256, false);
-	_LABEL = _GUI.addLabel(DIALOG_LABEL_ID, "", -65, 115, 365, 80);
+	_LABEL = _GUI.addLabel(DIALOG_LABEL_ID, "", -65, 116, 360, 80);
 	splitDialogs = [];
 	currentSplit = 0;
 	var entireDialog = _DIALOG.getText();
@@ -165,19 +160,6 @@ function interact(e){
 	//TODO: disable escape key if {noescape} is in text
 	//TODO: way of giving mail similar to how its done in the NPC editor
 
-
-
-	//TODO: change max size of characters depending on how many formatting codes there are. since currently, the amount of characters that display per page shrinks as more formatting codes are added.
-	//TODO: move this formatting, emotion, and pause indexes to occur for every single split instead of only once at the beginning
-	var formatCodeIndices = [];
-	var formatPosition = entireDialog.indexOf("§", 0);
-	while (formatPosition >= 0) {
-		//log("format code found at: " + pausePosition);
-		formatCodeIndices.push(formatPosition);
-		formatPosition = entireDialog.indexOf("§", formatPosition + 1);
-	}
-
-
 	// Process entire dialog
 	//find and replace all player tags with player names
 	entireDialog = entireDialog.replace(
@@ -185,55 +167,10 @@ function interact(e){
 		_PLAYER.getDisplayName()
 	);
 
-	// Process each split individually
-	//find and index all pause tags
-	pauseIndices = [];
-	var pausePosition = entireDialog.indexOf("{pause}", 0);
-	while (pausePosition >= 0) {
-		//log("pause found at: " + pausePosition);
-		pauseIndices.push(pausePosition);
-		entireDialog = entireDialog.replace("{pause}", "");
-		pausePosition = entireDialog.indexOf("{pause}", pausePosition + 1);
-	}
-
-	if(enablePortait && enableEmotions){
-		emotionPositionMap = {};
-		for(var v = 0; v <= emotions.length; v++){
-			var emotionPosition = entireDialog.indexOf("{" + emotions[v] + "}", 0);
-			while (emotionPosition >= 0) {
-				//account for format tags
-				log("found emotion: " + emotions[v] + " at position " + emotionPosition);
-				for(var n = 0; n <= formatCodeIndices.length; n++){
-					if(formatCodeIndices[n] <= emotionPosition ){
-						emotionPosition = emotionPosition - 2;
-					}else{
-						continue;
-					}
-				}
-				log("corrected emotion: " + emotions[v] + " to position " + emotionPosition);
-					
-				emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v] + ".png";
-				entireDialog = entireDialog.replace("{" + emotions[v] + "}", "");
-
-				//fix pause positions
-				pauseIndices = pauseIndices.map(function(pausePos){
-					if(emotionPosition <= pausePos)
-						return pausePos - ("{" + emotions[v] + "}").length;
-					else
-						return pausePos;
-				});
-
-				emotionPosition = entireDialog.indexOf("{" + emotions[v] + "}", emotionPosition + 1);
-			}
-		}
-	}
-
-	
-	//find how many formatting codes there are
-	//var numberOfFormattingCodes = entireDialog.match(/§/g).length;
+	entireDialog = entireDialog.replace(/\n{3,999}/g, '\n');
+	entireDialog = entireDialog.replace(/}{/g, '} {');
 
 	//Create CustomGuiComponents
-	_GUI.setBackgroundTexture("");
 	_GUI.addTexturedRect(DIALOG_BOX_ID, "customnpcs:textures/gui/chatbox.png", -150, -150 , 256, 256).setScale(2);
 	_GUI.addLabel(NPC_NAME_LABEL_ID, _NPC.getName(), -75, 75, 100, 40);
 	_LABEL = _GUI.getComponent(DIALOG_LABEL_ID);
@@ -254,27 +191,70 @@ function interact(e){
 		_PORTRAIT = _GUI.addTexturedRect(NPC_PORTRAIT_ID, portraitTexture, -182, 106, 256, 256).setScale(0.3828125);
 	}
 
-	splitDialogs = splitter(entireDialog, MAX_CHARACTERS + formatCodeIndices.length - 1);
-	/*
-    for(var j = 0; j < splitDialogs.length; j++)
-    {
-        log("split: " + j + "    split text: " + splitDialogs[j]);
-    }
-    */
 	if (e instanceof Java.type("noppes.npcs.api.event.NpcEvent.InteractEvent")) {
 		_PLAYER.showCustomGui(_GUI);
 	}
 
-	
+	splitDialogs = splitter(entireDialog, MAX_CHARACTERS);
 
 	if (splitDialogs[currentSplit].length == 0) {
 		//empty dialog text, so just add a button to close
-		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png" );
+		_GUI.addTexturedButton(CLOSE_GUI_BUTTON_ID, "", -2000, -2000, 4000, 4000, "customnpcs:textures/gui/blank.png");
 		_GUI.update(_PLAYER);
 	} else {
+		//start printing first split
 		_HTHREAD = new Thread(new RunDialog());
 		_HTHREAD.start();
 	}
+}
+
+/**
+ * Find and set all indices for current split. Format code positions, Pause position, and emotion position. 
+ * @param {string} split 
+ * @returns processed split
+ */
+function ProcessCurrentSplit(split){
+	log("processing current split: " + currentSplit + " split text: " + split);
+
+	pauseIndices = [];
+	var pausePosition = split.indexOf("{pause}", 0);
+	while (pausePosition >= 0) {
+		log("pause found at: " + pausePosition);
+		pauseIndices.push(pausePosition);
+		split = split.replace("{pause}", "");
+		pausePosition = split.indexOf("{pause}", pausePosition + 1);
+	}
+
+	formatCodeIndices = [];
+	var formatPosition = split.indexOf("§", 0);
+	while (formatPosition >= 0) {
+		log("format code found at: " + formatPosition);
+		formatCodeIndices.push(formatPosition);
+		formatPosition = split.indexOf("§", formatPosition + 1);
+	}
+
+	if(enablePortait && enableEmotions){
+		emotionPositionMap = {};
+		var emotions = split.match(/{(\w+)}/g) || [];
+		for(var v = 0; v < emotions.length; v++){
+			var emotionPosition = split.indexOf(emotions[v], 0);
+			log("found emotion: " + emotions[v] + " at position " + emotionPosition);
+				
+			emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v].replace(/[{}]/g, "") + ".png";
+			split = split.replace(emotions[v], "");
+			
+			//fix pause positions
+			pauseIndices = pauseIndices.map(function(pausePos){
+				if(emotionPosition <= pausePos)
+					return pausePos - (emotions[v]).length;
+				else
+					return pausePos;
+			});
+
+		}
+	}
+
+	return split;
 }
 
 /**
@@ -299,6 +279,7 @@ var RunDialog = Java.extend(Run, {
 		if(thisThread.isInterrupted()){
 			return;
 		}
+		splitDialogs[currentSplit] = ProcessCurrentSplit(splitDialogs[currentSplit]);
 		
 		var currentDialogString = "";
 		var splitDialogString = splitDialogs[currentSplit];
@@ -315,27 +296,29 @@ var RunDialog = Java.extend(Run, {
 			var currentCharacter = splitDialogString.charAt(currentDialogString.length);
 			var delay = 0;
 	
-			//check for {pause} tag indices
-			if(pauseIndices.length != 0) {
-				for (var k = 0; k < pauseIndices.length; k++) {
-					if (currentDialogString.length == pauseIndices[k] + "§r".length * splitDialogs.length) {
-						//{pause} found
-						delay = 1;
-						break;
-					}
-				}
-			}
-			
 			//TODO: Emotion position is not accurate. happens like 4 characters too late or not at all.
 			//check for emotion tag
 			if(enablePortait && enableEmotions){
 				for (var emotionPosition in emotionPositionMap) {
+					log(currentDialogString.length + " == " + emotionPosition);
 					if (currentDialogString.length == emotionPosition) {
 						//emotion tag found
 						_PORTRAIT.setTexture(emotionPositionMap[emotionPosition]);
 					}
 				}
 			}
+
+			//check for {pause} tag indices
+			if(pauseIndices.length != 0) {
+				for (var k = 0; k < pauseIndices.length; k++) {
+					if (currentDialogString.length == pauseIndices[k]) {
+						//{pause} found
+						delay = 1;
+						break;
+					}
+				}
+			}
+
 			
 			log(currentDialogString.length + " - " + currentDialogString + " + " + currentCharacter);
 			if(currentCharacter.charCodeAt(0) == "§".charCodeAt(0)){
@@ -386,7 +369,7 @@ function updateDialog(stringToDisplay) {
 	_GUI.update(_PLAYER);
 
 	//controlling sounds
-	log(stringToDisplay.length % frequency);
+	//log(stringToDisplay.length % frequency);
 	if (stringToDisplay.length % frequency == 0) {
 		if (makePredictable) {
 			var hashCode = splitDialogs[currentSplit].charAt(stringToDisplay.length).hashCode();
@@ -394,7 +377,7 @@ function updateDialog(stringToDisplay) {
 			if (numberOfSounds == 1) {
 				predictableIndex = "";
 			} else {
-				log("picked sound number: " + (hashCode % numberOfSounds + 1));
+				//log("picked sound number: " + (hashCode % numberOfSounds + 1));
 				predictableIndex = hashCode % numberOfSounds + 1;
 			}
 
@@ -639,15 +622,18 @@ function clearButtons() {
  * @param {*} l length of each split
  * @returns array of splits
  */
-function splitter(str, l) {
+function splitter(str, l) { //l = 426
 	var strs = [];
 	while (str.length > l) {
-		var pos = str.substring(0, l).lastIndexOf(" ");
-		pos = pos <= 0 ? l : pos;
-		strs.push("§r" + str.substring(0, pos));
-		var i = str.indexOf(" ", pos) + 1;
-		if (i < pos || i > pos + l) i = pos;
-		str = str.substring(i);
+		var split = "§r" + str.substring(0, l);
+		var formatCount = (split.match(/§/g) || []).length;
+		var newLineCount = (split.match(/\r\n|\r|\n/g) || []).length;
+		//log("format code count: " + formatCount);
+		//log("new line count: " + newLineCount);
+		//log("pushing split text: " + split);
+
+		strs.push("§r" + str.substring(0, l + formatCount - (l/7) * newLineCount/2));
+		str = str.substring(l + formatCount - (l/7) * newLineCount/2);
 	}
 	strs.push("§r" + str);
 	return strs;
