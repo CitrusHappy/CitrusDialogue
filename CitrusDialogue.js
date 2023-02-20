@@ -284,8 +284,6 @@ var RunDialog = Java.extend(Run, {
 		var currentDialogString = "";
 		var splitDialogString = splitDialogs[currentSplit];
 		
-		_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
-		_GUI.update(_PLAYER);
 	
 		while(!thisThread.isInterrupted() && currentDialogString.length != splitDialogString.length) {
 			//early thread termination if GUI is not open.
@@ -293,10 +291,13 @@ var RunDialog = Java.extend(Run, {
 				thisThread.interrupt();
 			}
 
+			if(currentDialogString.length == 3){
+				_GUI.addTexturedButton(FAST_FORWARD_BUTTON_ID, "", -100, 75, 450, 135, "customnpcs:textures/gui/blank.png");
+			}
+
 			var currentCharacter = splitDialogString.charAt(currentDialogString.length);
 			var delay = 0;
 	
-			//TODO: Emotion position is not accurate. happens like 4 characters too late or not at all.
 			//check for emotion tag
 			if(enablePortait && enableEmotions){
 				for (var emotionPosition in emotionPositionMap) {
