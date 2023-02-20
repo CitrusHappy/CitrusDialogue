@@ -10,10 +10,10 @@ var frequency = 2; // plays a sound per # of characters (generally the longer th
 var makePredictable = true; // this makes sound effects consistant between talking to the npc
 var pauseTime = 1; // duration of each {pause} tag in seconds
 
-var enablePortait = true;
+var enablePortait = false;
 var portraitTexture = ""; // max size w:98/h:98, if not specified image path, will look in "customnpcs:textures/npc/portrait/*.png"
 
-var enableEmotions = true; // Enable to change portait based on emotion tags inside dialog text. Requires enablePortrait to be true. Overrides portraitTexture.
+var enableEmotions = false; // Enable to change portait based on emotion tags inside dialog text. Requires enablePortrait to be true. Overrides portraitTexture.
 // If the NPC's name is peter and there is a {happy} tag in the dialog text, this will change the portrait to the image in the path "customnpcs:textures/npc/portrait/peter/happy.png".
 
 /**
