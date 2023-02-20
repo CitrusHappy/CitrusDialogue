@@ -99,9 +99,9 @@ function interact(e){
 				}
 			}
 		}
-		log("====================================================================");
-		log(_PLAYER.getName() + " started a dialog with " + _NPC.getName() + "!");
-		log("====================================================================");
+		//log("====================================================================");
+		//log(_PLAYER.getName() + " started a dialog with " + _NPC.getName() + "!");
+		//log("====================================================================");
 		if(_DIALOG == null){
 			// edgecase: no dialogs set, but still has the script on
 			return;
@@ -214,12 +214,12 @@ function interact(e){
  * @returns processed split
  */
 function ProcessCurrentSplit(split){
-	log("processing current split: " + currentSplit + " split text: " + split);
+	//log("processing current split: " + currentSplit + " split text: " + split);
 
 	pauseIndices = [];
 	var pausePosition = split.indexOf("{pause}", 0);
 	while (pausePosition >= 0) {
-		log("pause found at: " + pausePosition);
+		//log("pause found at: " + pausePosition);
 		pauseIndices.push(pausePosition);
 		split = split.replace("{pause}", "");
 		pausePosition = split.indexOf("{pause}", pausePosition + 1);
@@ -228,7 +228,7 @@ function ProcessCurrentSplit(split){
 	formatCodeIndices = [];
 	var formatPosition = split.indexOf("§", 0);
 	while (formatPosition >= 0) {
-		log("format code found at: " + formatPosition);
+		//log("format code found at: " + formatPosition);
 		formatCodeIndices.push(formatPosition);
 		formatPosition = split.indexOf("§", formatPosition + 1);
 	}
@@ -238,7 +238,7 @@ function ProcessCurrentSplit(split){
 		var emotions = split.match(/{(\w+)}/g) || [];
 		for(var v = 0; v < emotions.length; v++){
 			var emotionPosition = split.indexOf(emotions[v], 0);
-			log("found emotion: " + emotions[v] + " at position " + emotionPosition);
+			//log("found emotion: " + emotions[v] + " at position " + emotionPosition);
 				
 			emotionPositionMap[emotionPosition] = "customnpcs:textures/npc/portrait/" + _NPC.getName() + "/" + emotions[v].replace(/[{}]/g, "") + ".png";
 			split = split.replace(emotions[v], "");
@@ -301,7 +301,6 @@ var RunDialog = Java.extend(Run, {
 			//check for emotion tag
 			if(enablePortait && enableEmotions){
 				for (var emotionPosition in emotionPositionMap) {
-					log(currentDialogString.length + " == " + emotionPosition);
 					if (currentDialogString.length == emotionPosition) {
 						//emotion tag found
 						_PORTRAIT.setTexture(emotionPositionMap[emotionPosition]);
@@ -321,7 +320,7 @@ var RunDialog = Java.extend(Run, {
 			}
 
 			
-			log(currentDialogString.length + " - " + currentDialogString + " + " + currentCharacter);
+			//log(currentDialogString.length + " - " + currentDialogString + " + " + currentCharacter);
 			if(currentCharacter.charCodeAt(0) == "§".charCodeAt(0)){
 				//minecraft formatting code §, don't make a delay for it
 				//log("found format code.")
