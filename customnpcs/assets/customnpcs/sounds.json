@@ -1,5 +1,5 @@
 {
-	"default1": {
+	"default": {
 		"sounds": [
 			{"name": "customnpcs:txt_default",  "stream": false }
 			]
