@@ -30,7 +30,7 @@ To add a portrait, put an image with the NPC's exact name inside the ``customnpc
 - Make sure the image file is a w:98 x h:98 .png file or it will not display properly.
 (you can also choose a custom image path, if desired.)
 
-[![defaultportrait](/customnpcs/assets/customnpcs/textures/npc/portrait/default.png)](https://youtu.be/xp8QxmwI3sQ "Demo Video")
+![defaultportrait](/customnpcs/assets/customnpcs/textures/npc/portrait/default.png)
 
 ### How do I change emotion mid dialog?
 First set ``enableEmotions`` to true.
