@@ -13,6 +13,9 @@ A Minecraft 1.12.2 [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/cus
 - Respects the availability of quests and options
 - Wrap around for dialogue that is too long
 
+## How to Install
+First copy the ``customnpcs/`` folder into your root minecraft folder.
+Launch the game and copy and paste the .js script into a script box which you can find by right-clicking an NPC with the scripting tool.
 
 ## Demo
 [![Watch the video](https://yt-embed.live/embed?v=xp8QxmwI3sQ)](https://youtu.be/xp8QxmwI3sQ)
